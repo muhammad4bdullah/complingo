@@ -118,6 +118,34 @@ function progressCacheKey() {
         : CACHE_KEY;
 }
 
+function codeDraftCacheKey(challengeId) {
+    const owner = state.user ? `user_${state.user.id}` : "guest";
+    return `complingo_code_draft_${owner}_${challengeId}`;
+}
+
+function loadCodeDraft(challengeId, starterCode) {
+    try {
+        const draft = localStorage.getItem(codeDraftCacheKey(challengeId));
+        return draft === null ? starterCode : draft;
+    } catch (error) {
+        console.warn("Could not load the saved code draft.", error);
+        return starterCode;
+    }
+}
+
+function saveCodeDraft() {
+    if (!state.editor) return;
+
+    try {
+        localStorage.setItem(
+            codeDraftCacheKey(state.currentChallenge),
+            state.editor.getValue()
+        );
+    } catch (error) {
+        console.warn("Could not save the code draft.", error);
+    }
+}
+
 function loadGuestProgress() {
     try {
         const raw = localStorage.getItem(progressCacheKey());
@@ -1096,6 +1124,7 @@ function initialiseEditor() {
 
     state.editor.on("change", () => {
         updateEditorStatus();
+        saveCodeDraft();
 
         $("#unsavedDot").hidden = false;
 
@@ -1282,7 +1311,9 @@ function loadChallenge(key) {
         css: "style.css"
     }[challenge.language];
 
-    state.editor.setValue(challenge.starterCode);
+    state.editor.setValue(
+        loadCodeDraft(key, challenge.starterCode)
+    );
 
     $("#unsavedDot").hidden = true;
 

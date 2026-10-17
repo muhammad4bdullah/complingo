@@ -41,7 +41,9 @@ appears as a distinct extra exam practical in the study pack.
 Open `index.html` in a modern browser. JavaScript practical tests use a
 short-lived Web Worker so a learner's infinite loop can be stopped without
 freezing the page. Serve the folder over HTTP for OAuth and browser worker
-support; do not use a `file://` URL.
+support; do not use a `file://` URL. Code drafts are saved separately for each
+challenge in the browser and restored when that challenge is reopened; signed-in
+learners' drafts are kept separate from guest drafts and other accounts.
 
 ## Google sign-in and per-user cloud progress
 
