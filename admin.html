@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#10111b">
+    <title>Teacher panel — Complingo</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-shell">
+        <header class="topbar">
+            <a class="brand" href="index.html">
+                <span class="brand-icon">C</span>
+                <span>complingo<span class="accent">.</span></span>
+                <span class="brand-label">TEACHER</span>
+            </a>
+            <div class="header-actions">
+                <a class="text-link" href="index.html">← Learner app</a>
+                <button class="button secondary" id="signOutButton" hidden>Sign out</button>
+            </div>
+        </header>
+
+        <main>
+            <section id="authPanel" class="auth-panel">
+                <div class="eyebrow">PRIVATE TEACHER ACCESS</div>
+                <h1>Learner activity</h1>
+                <p>Sign in with the Google account added to the Supabase admin allowlist.</p>
+                <button class="button primary" id="signInButton">Continue with Google</button>
+                <p id="authMessage" class="message" role="status"></p>
+            </section>
+
+            <section id="deniedPanel" class="auth-panel" hidden>
+                <div class="eyebrow">ACCESS NOT GRANTED</div>
+                <h1>This account is not an admin.</h1>
+                <p>Ask the project owner to add your account to the private admin list.</p>
+                <button class="button secondary" id="deniedSignOutButton">Sign out</button>
+                <p id="deniedMessage" class="message" role="status"></p>
+            </section>
+
+            <section id="dashboard" hidden>
+                <div class="page-heading">
+                    <div class="eyebrow">TEACHER TOOLS</div>
+                    <h1>Learner activity</h1>
+                    <p>Review saved lesson progress, checkpoint results, activity, and submitted code.</p>
+                </div>
+
+                <p id="dashboardMessage" class="message" role="status"></p>
+                <div id="summaryCards" class="summary-grid"></div>
+
+                <section class="panel learner-picker">
+                    <label for="learnerSelect">Choose a learner</label>
+                    <select id="learnerSelect">
+                        <option value="">Select a learner</option>
+                    </select>
+                    <p class="muted">Only code submitted using Run code or Check code is visible here. Unsubmitted drafts stay in the learner's browser.</p>
+                </section>
+
+                <div id="learnerDetails"></div>
+            </section>
+        </main>
+        <footer>Complingo · Teacher panel</footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="curriculum.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

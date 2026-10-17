@@ -5,8 +5,9 @@
    Add your Supabase project credentials here.
 ========================================================= */
 
-const SUPABASE_URL = "https://khvszdtgdguppwfpmisu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_x-fiQ9AqqNnDvDoZZXgYHg_s2rWgjoJ";
+const SUPABASE_URL = window.complingoSupabaseConfig?.url || "";
+const SUPABASE_ANON_KEY =
+    window.complingoSupabaseConfig?.publishableKey || "";
 
 const supabaseConfigured =
     SUPABASE_URL.startsWith("https://") &&
@@ -69,6 +70,7 @@ lessons.forEach(lesson => {
 const state = {
     user: null,
     profile: null,
+    isAdmin: false,
 
     editor: null,
     currentChallenge: "factorial",
@@ -325,7 +327,7 @@ $("#topAvatar").addEventListener("click", () => {
 $("#googleSignInButton").addEventListener("click", async () => {
     if (!supabaseClient) {
         $("#authError").textContent =
-            "Supabase is not configured yet. Add your project URL and publishable key in script.js.";
+            "Supabase is not configured yet. Add your project URL and publishable key in supabase-config.js.";
 
         $("#authError").hidden = false;
         return;
@@ -376,9 +378,11 @@ async function signOut() {
 function resetSignedInState() {
     state.user = null;
     state.profile = null;
+    state.isAdmin = false;
     state.progress = createEmptyProgress();
     loadGuestProgress();
     renderUser();
+    $("#adminNavItem").hidden = true;
     renderDashboard();
 }
 
@@ -460,6 +464,7 @@ async function onAuthenticated(user) {
     closeAuthModal();
 
     await loadCloudProgress();
+    await refreshAdminAccess();
 
     renderDashboard();
 
@@ -498,7 +503,8 @@ async function loadCloudProgress() {
                     .from("profiles")
                     .insert({
                         id: state.user.id,
-                        display_name: name
+                        display_name: name,
+                        email: state.user.email || null
                     })
                     .select()
                     .single();
@@ -733,6 +739,28 @@ async function saveAssessmentResult(assessmentId, score, maxScore) {
     }
 
     await syncLearnerState();
+}
+
+async function refreshAdminAccess() {
+    state.isAdmin = false;
+    $("#adminNavItem").hidden = true;
+
+    if (!supabaseClient || !state.user) return;
+
+    const { data, error } = await supabaseClient
+        .from("app_admins")
+        .select("user_id")
+        .eq("user_id", state.user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Teacher access check failed.", error);
+        toast("Could not verify teacher access.");
+        return;
+    }
+
+    state.isAdmin = Boolean(data);
+    $("#adminNavItem").hidden = !state.isAdmin;
 }
 
 
@@ -1627,7 +1655,58 @@ parent.postMessage({
    CODE CHECKER
 ========================================================= */
 
-function checkCode() {
+async function saveCodeSubmission(action, code) {
+    if (!supabaseClient || !state.user) return null;
+
+    const challenge = challenges[state.currentChallenge];
+    if (!challenge) return null;
+
+    const checkpoint = checkpoints.find(item =>
+        item.taskIds.includes(state.currentChallenge)
+    );
+
+    try {
+        const { error } = await supabaseClient
+            .from("code_submissions")
+            .insert({
+                user_id: state.user.id,
+                challenge_id: state.currentChallenge,
+                challenge_title: challenge.title,
+                checkpoint_id: checkpoint?.id || null,
+                context: state.challengeContext || "practice",
+                language: $("#languageSelect").value,
+                action,
+                code
+            });
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error("Code submission could not be saved.", error);
+        return false;
+    }
+}
+
+function showCodeSubmissionStatus(saved) {
+    if (saved === true) {
+        writeOutput(
+            "Code snapshot saved for teacher review.",
+            "info"
+        );
+    } else if (saved === false) {
+        writeOutput(
+            "This code was handled locally, but its teacher-review copy could not be saved to the cloud.",
+            "warning"
+        );
+    } else if (saved === null) {
+        writeOutput(
+            "Sign in to save this code for teacher review.",
+            "info"
+        );
+    }
+}
+
+async function checkCode() {
     clearOutput();
 
     const language = $("#languageSelect").value;
@@ -1641,6 +1720,9 @@ function checkCode() {
 
         return;
     }
+
+    const saved = await saveCodeSubmission("check", code);
+    showCodeSubmissionStatus(saved);
 
     if (language === "javascript") {
         const diagnostics = getDiagnostics();
@@ -1751,6 +1833,10 @@ async function runCode() {
     $("#outputStatus").textContent = "Executing";
 
     try {
+        showCodeSubmissionStatus(
+            await saveCodeSubmission("run", code)
+        );
+
         if (language === "javascript") {
             const diagnostics = getDiagnostics();
 

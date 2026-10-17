@@ -49,10 +49,14 @@ learners' drafts are kept separate from guest drafts and other accounts.
 
 The app uses Supabase Auth for Google OAuth and Supabase Postgres to save each
 signed-in learner's profile, lesson completions, checkpoint results, streak,
-and recent activity. Run `supabase-schema.sql` once in a new Supabase project's
-SQL Editor before testing cloud saves. Its row-level security policies
-restrict each account to its own rows. Local cached progress is also separated
-by signed-in user on a shared browser.
+recent activity, and code snapshots submitted by using **Run code** or
+**Check code**. Code that is only left as a browser draft is not uploaded.
+The teacher dashboard is a separate page at `admin.html`.
+Run `supabase-schema.sql` once in a new Supabase project's SQL Editor before
+testing cloud saves. If the original schema has already been installed, run
+`supabase-admin-migration.sql` instead. Row-level security restricts each
+learner to their own records; local cached progress is also separated by
+signed-in user on a shared browser.
 
 1. Create a Supabase project at [supabase.com](https://supabase.com/) if you do
    not already have one.
@@ -74,11 +78,13 @@ by signed-in user on a shared browser.
    In **Authentication → URL Configuration**, set **Site URL** to the
    deployed app URL. Add each exact app return URL under **Redirect URLs**, for
    example `http://127.0.0.1:8765/index.html` during local testing and
-   `https://your-domain.example/index.html` when deployed. Add the localhost
-   form too if you use `localhost` instead of `127.0.0.1`.
+   `https://your-domain.example/index.html` when deployed. Also add the matching
+   `admin.html` URLs so an admin can return to the teacher panel after Google
+   sign-in. Add the localhost form too if you use `localhost` instead of
+   `127.0.0.1`.
 7. The project URL and publishable key you provided are configured in
-   `script.js`. Publishable keys are designed for browser use and are safe to
-   include with correctly configured row-level security. Never use a
+   `supabase-config.js`. Publishable keys are designed for browser use and are
+   safe to include with correctly configured row-level security. Never use a
    `service_role` key in the app.
 8. Serve this folder on the same local origin configured above, then select
    **Continue with Google**. Test with two accounts to check that progress is
@@ -87,6 +93,41 @@ by signed-in user on a shared browser.
 For example, from this folder run
 `python -m http.server 8765 --bind 127.0.0.1` and open
 `http://127.0.0.1:8765/index.html`.
+
+### Set up the separate teacher panel
+
+Open `/admin.html` on your deployed site (for this project, the standard GitHub
+Pages address is `https://muhammad4bdullah.github.io/complingo/admin.html`) to
+use the teacher dashboard. The learner app also shows a link to it after an
+admin signs in. The page and its Supabase queries are restricted to accounts
+explicitly added to the private `app_admins` table by the database policies.
+Never add an admin check or Supabase `service_role` key to browser code.
+
+1. If you already ran the earlier database schema, run
+   `supabase-admin-migration.sql` in Supabase **SQL Editor**. For a new project,
+   run `supabase-schema.sql` first, then the admin migration.
+2. Sign in to the app once with the Google account that should own the teacher
+   panel. This creates its Supabase user and profile.
+3. In **SQL Editor**, replace the email below with that account's Google email
+   and run this query:
+
+   ```sql
+   insert into public.app_admins (user_id)
+   select id
+   from auth.users
+   where lower(email) = lower('you@example.com')
+   on conflict (user_id) do nothing;
+   ```
+
+   The account must already have signed in. Only use an email you control.
+   Refresh the app; **Teacher panel** should appear in the sidebar.
+4. Signed-in learners' saved lesson completions, checkpoint results, recent
+   activity, and code snapshots appear there. A snapshot is recorded each time
+   a learner runs or checks code. Browser drafts that have not been submitted
+   remain on that device and are not visible to the teacher.
+
+To remove teacher access, delete that account's row from `public.app_admins`
+using Supabase **SQL Editor**.
 
 ### Finding the Google OAuth client ID and secret
 
