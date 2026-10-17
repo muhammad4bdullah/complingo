@@ -5,8 +5,8 @@
    Add your Supabase project credentials here.
 ========================================================= */
 
-const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+const SUPABASE_URL = "https://khvszdtgdguppwfpmisu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_x-fiQ9AqqNnDvDoZZXgYHg_s2rWgjoJ";
 
 const supabaseConfigured =
     SUPABASE_URL.startsWith("https://") &&
@@ -102,9 +102,25 @@ const state = {
 
 const CACHE_KEY = "complingo_guest_progress_v1";
 
+function createEmptyProgress() {
+    return {
+        completedLessons: [],
+        assessmentResults: [],
+        activities: [],
+        lastActiveDate: null,
+        streak: 0
+    };
+}
+
+function progressCacheKey() {
+    return state.user
+        ? `complingo_user_progress_${state.user.id}`
+        : CACHE_KEY;
+}
+
 function loadGuestProgress() {
     try {
-        const raw = localStorage.getItem(CACHE_KEY);
+        const raw = localStorage.getItem(progressCacheKey());
 
         if (!raw) return;
 
@@ -145,7 +161,10 @@ function loadGuestProgress() {
 
 function saveGuestProgress() {
     try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(state.progress));
+        localStorage.setItem(
+            progressCacheKey(),
+            JSON.stringify(state.progress)
+        );
     } catch (error) {
         console.warn("Could not save guest progress.", error);
     }
@@ -322,11 +341,17 @@ async function signOut() {
         return;
     }
 
+    resetSignedInState();
+    toast("You have signed out.");
+}
+
+function resetSignedInState() {
     state.user = null;
     state.profile = null;
-
+    state.progress = createEmptyProgress();
+    loadGuestProgress();
     renderUser();
-    toast("You have signed out.");
+    renderDashboard();
 }
 
 $("#signOutButton").addEventListener("click", signOut);
@@ -382,10 +407,7 @@ async function initialiseAuth() {
                 if (session?.user) {
                     await onAuthenticated(session.user);
                 } else if (event === "SIGNED_OUT") {
-                    state.user = null;
-                    state.profile = null;
-
-                    renderUser();
+                    resetSignedInState();
                 }
             }, 0);
         });
@@ -398,7 +420,12 @@ async function initialiseAuth() {
 
 
 async function onAuthenticated(user) {
+    if (state.user?.id !== user.id) {
+        state.progress = createEmptyProgress();
+    }
+
     state.user = user;
+    loadGuestProgress();
 
     renderUser();
 
@@ -514,6 +541,58 @@ async function loadCloudProgress() {
             state.progress.assessmentResults = [...latestResults.values()];
         }
 
+        const { data: learnerState, error: learnerStateError } =
+            await supabaseClient
+                .from("learner_state")
+                .select("activities, last_active_date, streak")
+                .eq("user_id", state.user.id)
+                .maybeSingle();
+
+        if (learnerStateError) throw learnerStateError;
+
+        if (learnerState) {
+            const cloudActivities = Array.isArray(learnerState.activities)
+                ? learnerState.activities
+                : [];
+            const localActivities = state.progress.activities;
+            const activityKey = activity =>
+                `${activity.date}|${activity.type}|${activity.description}`;
+            const cloudActivityKeys = new Set(cloudActivities.map(activityKey));
+            const hasLocalOnlyActivities = localActivities.some(activity =>
+                !cloudActivityKeys.has(activityKey(activity))
+            );
+            const mergedActivities = new Map();
+            [...cloudActivities, ...localActivities]
+                .sort((left, right) =>
+                    new Date(right.date) - new Date(left.date)
+                )
+                .forEach(activity => {
+                    mergedActivities.set(activityKey(activity), activity);
+                });
+            state.progress.activities = [...mergedActivities.values()].slice(0, 50);
+
+            const localStateIsNewer =
+                state.progress.lastActiveDate &&
+                (!learnerState.last_active_date ||
+                    state.progress.lastActiveDate > learnerState.last_active_date);
+            if (!localStateIsNewer) {
+                state.progress.lastActiveDate =
+                    learnerState.last_active_date;
+                state.progress.streak = learnerState.streak;
+            } else {
+                await syncLearnerState();
+            }
+
+            if (hasLocalOnlyActivities && !localStateIsNewer) {
+                await syncLearnerState();
+            }
+        } else if (
+            state.progress.activities.length ||
+            state.progress.lastActiveDate
+        ) {
+            await syncLearnerState();
+        }
+
         saveGuestProgress();
         renderDashboard();
 
@@ -521,6 +600,27 @@ async function loadCloudProgress() {
         console.error("Could not load cloud progress.", error);
 
         toast("Cloud sync failed. Local progress is still available.");
+    }
+}
+
+async function syncLearnerState() {
+    if (!supabaseClient || !state.user) return;
+
+    const { error } = await supabaseClient
+        .from("learner_state")
+        .upsert({
+            user_id: state.user.id,
+            activities: state.progress.activities,
+            last_active_date: state.progress.lastActiveDate,
+            streak: state.progress.streak,
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: "user_id"
+        });
+
+    if (error) {
+        console.error("Learner activity sync failed.", error);
+        toast("Activity is saved locally; cloud sync failed.");
     }
 }
 
@@ -558,6 +658,8 @@ async function saveLessonCompletion(lessonId) {
         console.error("Progress sync failed.", error);
         toast("Progress saved locally; cloud sync failed.");
     }
+
+    await syncLearnerState();
 }
 
 
@@ -601,6 +703,8 @@ async function saveAssessmentResult(assessmentId, score, maxScore) {
         console.error("Assessment result sync failed.", error);
         toast("Result saved locally; cloud sync failed.");
     }
+
+    await syncLearnerState();
 }
 
 
@@ -1380,8 +1484,12 @@ function runMarkup(language, code) {
         const frame = document.createElement("iframe");
 
         frame.setAttribute("sandbox", "allow-scripts");
-
-        frame.style.display = "none";
+        frame.className = "code-preview-frame";
+        frame.title = "HTML and CSS practical preview";
+        const previewLabel = document.createElement("div");
+        previewLabel.className = "output-line info";
+        previewLabel.textContent = "Live page preview";
+        $("#outputContent").append(previewLabel, frame);
 
         let finished = false;
 
@@ -1391,6 +1499,7 @@ function runMarkup(language, code) {
             finished = true;
 
             window.removeEventListener("message", listener);
+            frame.remove();
 
             resolve({
                 error: "Preview timed out."
@@ -1440,9 +1549,18 @@ function runMarkup(language, code) {
 <style>${code.replace(/<\/style/gi, "<\\/style")}</style>
 </head>
 <body>
-<h1>CSS preview</h1>
-<p>Your CSS styles are applied to this sample page.</p>
-<div class="preview-box">Example element</div>
+<h1 class="blink-text">CSS practical preview</h1>
+<p>Style this sample form and table.</p>
+<form class="preview-form">
+    <label for="preview-name">Name</label>
+    <input id="preview-name" type="text" value="Learner">
+    <button type="button">Example button</button>
+</form>
+<table>
+    <tr><th>Practical</th><th>Marks</th></tr>
+    <tr><td>HTML</td><td>10</td></tr>
+</table>
+<div class="preview-box moving-square" aria-label="Animation preview"></div>
 <script>
 document.querySelector(".preview-box").style.padding = "16px";
 <\/script>
@@ -1456,21 +1574,20 @@ document.querySelector(".preview-box").style.padding = "16px";
          * security boundary for untrusted public submissions.
          */
 
-        frame.srcdoc = documentContent.replace(
-            /<\/body>/i,
-            `
+        const completionScript = `
 <script>
 parent.postMessage({
     token: ${JSON.stringify(token)},
     type: "preview-done"
 }, "*");
 <\/script>
-</body>`
-        );
-
-        document.body.appendChild(frame);
-
-        setTimeout(() => frame.remove(), 2000);
+`;
+        frame.srcdoc = /<\/body>/i.test(documentContent)
+            ? documentContent.replace(
+                /<\/body>/i,
+                `${completionScript}</body>`
+            )
+            : `${documentContent}${completionScript}`;
     });
 }
 
@@ -1541,123 +1658,44 @@ $("#checkCodeButton").addEventListener("click", checkCode);
 
 
 /* =========================================================
-   FACTORIAL / SUM FUNCTION EXTRACTION
+   PRACTICAL PROGRAM TESTS
 ========================================================= */
 
-function executeFunctionTests(code, challenge) {
-    return new Promise(resolve => {
-        if (typeof Worker === "undefined" || typeof Blob === "undefined") {
-            resolve({
+async function executeProgramTests(code, challenge) {
+    const cases = challenge.programCases || [];
+
+    for (let index = 0; index < cases.length; index++) {
+        const test = cases[index];
+        const result = await runJavaScript(code, [...test.input]);
+
+        if (result.error) {
+            return {
                 success: false,
-                passedTests: 0,
-                message: "This browser cannot safely run the practical tests."
-            });
-            return;
-        }
-
-        const workerSource = `
-            self.onmessage = function(event) {
-                const { code, functionName, cases } = event.data;
-                try {
-                    const getFunction = new Function(
-                        code + "\\nreturn typeof " + functionName +
-                        " === 'function' ? " + functionName + " : null;"
-                    );
-                    const solution = getFunction();
-                    if (typeof solution !== "function") {
-                        throw new Error("Define a function named " + functionName + ".");
-                    }
-
-                    const equal = (actual, expected) => {
-                        if (Object.is(actual, expected)) return true;
-                        if (
-                            actual === null || expected === null ||
-                            typeof actual !== "object" ||
-                            typeof expected !== "object"
-                        ) return false;
-                        if (Array.isArray(actual) !== Array.isArray(expected)) return false;
-                        const actualKeys = Object.keys(actual).sort();
-                        const expectedKeys = Object.keys(expected).sort();
-                        return actualKeys.length === expectedKeys.length &&
-                            actualKeys.every((key, index) =>
-                                key === expectedKeys[index] &&
-                                equal(actual[key], expected[key])
-                            );
-                    };
-
-                    for (let index = 0; index < cases.length; index++) {
-                        const test = cases[index];
-                        const actual = solution(...test.input);
-                        if (!equal(actual, test.expected)) {
-                            self.postMessage({
-                                success: false,
-                                passedTests: index,
-                                failedTest: index,
-                                message: "A test did not match the expected result."
-                            });
-                            return;
-                        }
-                    }
-
-                    self.postMessage({
-                        success: true,
-                        passedTests: cases.length,
-                        message: "All practical tests passed."
-                    });
-                } catch (error) {
-                    self.postMessage({
-                        success: false,
-                        passedTests: 0,
-                        message: error.name + ": " + error.message
-                    });
-                }
+                passedTests: index,
+                failedTest: index,
+                message: result.error
             };
-        `;
-
-        const url = URL.createObjectURL(
-            new Blob([workerSource], { type: "text/javascript" })
-        );
-        let worker;
-        let finished = false;
-
-        const finish = result => {
-            if (finished) return;
-            finished = true;
-            clearTimeout(timeout);
-            if (worker) worker.terminate();
-            URL.revokeObjectURL(url);
-            resolve(result);
-        };
-
-        const timeout = setTimeout(() => {
-            finish({
-                success: false,
-                passedTests: 0,
-                message: "Tests timed out. Check for a loop that never ends."
-            });
-        }, 1800);
-
-        try {
-            worker = new Worker(url);
-            worker.onmessage = event => finish(event.data);
-            worker.onerror = event => finish({
-                success: false,
-                passedTests: 0,
-                message: `Test worker failed: ${event.message || "unknown error"}`
-            });
-            worker.postMessage({
-                code,
-                functionName: challenge.functionName,
-                cases: challenge.cases
-            });
-        } catch (error) {
-            finish({
-                success: false,
-                passedTests: 0,
-                message: `Could not start the isolated test runner: ${error.message}`
-            });
         }
-    });
+
+        const actualOutput = result.results
+            .filter(item => item.type === "normal")
+            .map(item => item.message);
+
+        if (JSON.stringify(actualOutput) !== JSON.stringify(test.expectedOutput)) {
+            return {
+                success: false,
+                passedTests: index,
+                failedTest: index,
+                message: "The displayed output did not match this practical's expected result."
+            };
+        }
+    }
+
+    return {
+        success: true,
+        passedTests: cases.length,
+        message: "All practical tests passed."
+    };
 }
 
 
@@ -1749,7 +1787,7 @@ async function runCode() {
 
             } else {
                 writeOutput(
-                    "Preview generated. This editor currently uses an internal sandbox preview, not a separate browser tab.",
+                    "Preview shown below in the sandbox.",
                     "success"
                 );
 
@@ -1798,7 +1836,7 @@ async function runChallengeTests() {
     const code = state.editor.getValue();
     const result = typeof challenge.validate === "function"
         ? challenge.validate(code)
-        : await executeFunctionTests(code, challenge);
+        : await executeProgramTests(code, challenge);
 
     (challenge.testCases || []).forEach((test, index) => {
         const resultElement = $(`#testCase${index} .test-result`);

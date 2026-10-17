@@ -192,8 +192,8 @@
                             <div class="art-glow"></div>
 
                             <div class="floating-code code-one">
-                                <span class="code-purple">function</span>
-                                <span class="code-blue">solve</span>() {
+                                <span class="code-purple">if</span>
+                                (no1 % 2 === 0) {
                             </div>
 
                             <div class="code-window">
@@ -206,13 +206,13 @@
                                 </div>
 
                                 <div class="mini-code">
-                                    <div><span>01</span> <b>const</b> goal =</div>
-                                    <div><span>02</span> <em>"learn"</em>;</div>
-                                    <div><span>03</span> </div>
-                                    <div><span>04</span> <b>while</b> (learning) {</div>
-                                    <div><span>05</span> &nbsp; practice();</div>
-                                    <div><span>06</span> &nbsp; improve();</div>
-                                    <div><span>07</span> }</div>
+                                    <div><span>01</span> <b>let</b> no1 = Number(prompt());</div>
+                                    <div><span>02</span> <b>if</b> (no1 % 2 === 0) {</div>
+                                    <div><span>03</span> &nbsp; alert("even");</div>
+                                    <div><span>04</span> } <b>else</b> {</div>
+                                    <div><span>05</span> &nbsp; alert("odd");</div>
+                                    <div><span>06</span> }</div>
+                                    <div><span>07</span> </div>
                                 </div>
 
                                 <div class="code-success">
@@ -295,8 +295,8 @@
 
                             <div class="course-info">
                                 <span class="course-tag">UNIT 1</span>
-                                <h3>Foundations and decisions</h3>
-                                <p>HTML structure, arithmetic, conditions, and comparisons.</p>
+                                <h3>HTML and decisions</h3>
+                                <p>HTML structure, arithmetic, even/odd, and largest number.</p>
                             </div>
 
                             <div class="course-bottom">
@@ -314,7 +314,7 @@
                             <div class="course-info">
                                 <span class="course-tag">UNIT 2</span>
                                 <h3>Loops and strings</h3>
-                                <p>Factorials, square sums, and character counting.</p>
+                                <p>Positive squares, factorials, square sums, and character counting.</p>
                             </div>
 
                             <div class="course-bottom">
@@ -336,7 +336,24 @@
                             </div>
 
                             <div class="course-bottom">
-                                <span>4 lessons · final checkpoint</span>
+                                <span>4 lessons · checkpoint</span>
+                                <button data-view="learn">Start →</button>
+                            </div>
+
+                        </article>
+
+                        <article class="course-card">
+
+                            <div class="course-icon html-icon">CSS</div>
+
+                            <div class="course-info">
+                                <span class="course-tag">UNIT 4</span>
+                                <h3>Forms, styling, and animation</h3>
+                                <p>HTML form controls, CSS tables and forms, blinking text, and a rotating square.</p>
+                            </div>
+
+                            <div class="course-bottom">
+                                <span>3 lessons · final checkpoint</span>
                                 <button data-view="learn">Start →</button>
                             </div>
 
@@ -394,8 +411,8 @@
                             <strong>Built from your school practicals.</strong>
                             <p>
                                 Repeated copies of the same parity, factorial, largest-number,
-                                array, and square exercises have been combined. Finish each
-                                four-lesson unit to unlock a checkpoint on the material taught.
+                                array, and square exercises have been combined. Finish every
+                                lesson in a unit to unlock a checkpoint on the material taught.
                             </p>
                         </div>
                     </div>
@@ -469,8 +486,8 @@
                             <h2 id="challengeTitle">Calculate a factorial</h2>
 
                             <p id="challengeDescription">
-                                Write a function that calculates the factorial
-                                of a non-negative integer.
+                                Read a number, calculate its factorial with a
+                                countdown loop, and display the answer.
                             </p>
 
                             <div class="challenge-divider"></div>
@@ -478,15 +495,14 @@
                             <div class="challenge-label">WHAT TO DO</div>
 
                             <ol id="challengeInstructions">
-                                <li>Define a function named factorial.</li>
-                                <li>Multiply the integers from 1 to n.</li>
-                                <li>Return the result.</li>
-                                <li>Test your function.</li>
+                                <li>Start fact at 1.</li>
+                                <li>Count down from the entered number to 1.</li>
+                                <li>Multiply fact by i on each loop pass.</li>
                             </ol>
 
                             <div class="example-box">
                                 <span>EXAMPLE</span>
-                                <code>factorial(5) → 120</code>
+                                <code>For input 5, display 120.</code>
                             </div>
 
                             <div class="challenge-label">TEST CASES</div>

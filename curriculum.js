@@ -4,52 +4,55 @@ const schoolCurriculum = {
     units: [
         {
             id: "unit-1",
-            title: "Foundations and decisions",
-            subtitle: "HTML structure, arithmetic, if/else, and comparisons.",
+            title: "HTML and decisions",
+            subtitle: "HTML practicals, arithmetic, if/else, and comparisons.",
             checkpointId: "checkpoint-1"
         },
         {
             id: "unit-2",
             title: "Loops and strings",
-            subtitle: "Positive-number checks, factorials, square sums, and text.",
+            subtitle: "Positive numbers, factorials, square sums, and text.",
             checkpointId: "checkpoint-2"
         },
         {
             id: "unit-3",
             title: "Arrays and nested loops",
-            subtitle: "Classify, total, average, and generate multiplication tables.",
+            subtitle: "Even/odd values, sums, averages, and multiplication tables.",
             checkpointId: "checkpoint-3"
+        },
+        {
+            id: "unit-4",
+            title: "Forms, styling, and animation",
+            subtitle: "HTML forms, CSS tables and forms, and simple animations.",
+            checkpointId: "checkpoint-4"
         }
     ],
 
     lessons: [
         {
-            id: "practical-html-structure",
+            id: "practical-html-structure-ssc",
             unitId: "unit-1",
             challengeId: "html-practical",
             title: "Build the practical HTML page",
-            description: "Build the headings, formatting, lists, link, and marks table from your HTML practical.",
-            concept: "HTML describes a page's structure. Use headings and paragraphs for text, lists for grouped items, tables for rows and columns, and links for navigation. The body contains visible page content.",
-            exampleCode: `<h1>Student results</h1>
-<p>Practical <strong>marks</strong> and 2<sup>3</sup></p>
-
-<ol>
-    <li>HTML</li>
-    <li>JavaScript</li>
-</ol>
-
-<ul><li>HTML</li><li>JavaScript</li></ul>
-
-<dl>
-    <dt>HTML</dt>
-    <dd>Structures a web page.</dd>
-</dl>
-
-<a href="#marks">View marks</a>
-<table id="marks">
-    <tr><th>Name</th><th>Score</th></tr>
-    <tr><td>A learner</td><td>18</td></tr>
-</table>`,
+            description: "Practice the headings, formatting, lists, links, and table from your HTML practical.",
+            concept: "The practical uses HTML tags to structure a page. The body contains visible content. Lists group items, links navigate to a page or section, and tables arrange information in rows and columns.",
+            exampleCode: `<html>
+<head>
+<title>PRACTICALS</title>
+</head>
+<body>
+<h1>This is heading 1</h1>
+<h2>This is heading 2</h2>
+<p>This <b>text is bold</b>, this <strong>text is strong</strong>, and this <u>text is underlined</u>.</p>
+<p><i>8<sup>2</sup> = 64</i></p>
+<small>Small text</small>
+<ol><li>Football</li><li>Programming</li></ol>
+<ul><li>Football</li><li>Programming</li></ul>
+<dl><dt>HTML</dt><dd>The structure of a web page.</dd></dl>
+<a href="#marks">Marks</a>
+<table id="marks"><tr><th>Name</th><th>Marks</th></tr><tr><td>A learner</td><td>18</td></tr></table>
+</body>
+</html>`,
             question: "Which element contains the visible page content?",
             options: [
                 { value: "head", label: "<head>" },
@@ -59,22 +62,29 @@ const schoolCurriculum = {
             answer: "body"
         },
         {
-            id: "practical-operators",
+            id: "practical-operators-ssc",
             unitId: "unit-1",
             challengeId: "three-operations",
             title: "Sum, product, and average",
-            description: "Use arithmetic operators and functions with three values.",
-            concept: "The practical asks for three numbers, then uses + for the sum, * for the product, and division by 3 for the average. Number(prompt(...)) converts typed text to a number.",
-            exampleCode: `const n1 = Number(prompt("Enter number 1"));
-const n2 = Number(prompt("Enter number 2"));
-const n3 = Number(prompt("Enter number 3"));
+            description: "Use the practical's three numbers and its sum, product, and average functions.",
+            concept: "The program reads three numbers. Its sum(), product(), and avg() functions each calculate a result and display it with alert().",
+            exampleCode: `let n1 = Number(prompt("Enter number 1"));
+let n2 = Number(prompt("Enter number 2"));
+let n3 = Number(prompt("Enter number 3"));
 
 function sum() {
-    return n1 + n2 + n3;
+    let sum = n1 + n2 + n3;
+    alert("sum is:" + sum);
 }
 
-function average() {
-    return (n1 + n2 + n3) / 3;
+function product() {
+    let product = n1 * n2 * n3;
+    alert("product is:" + product);
+}
+
+function avg() {
+    let avg = (n1 + n2 + n3) / 3;
+    alert("avg is:" + avg);
 }`,
             question: "Which operator multiplies two numbers?",
             options: [
@@ -85,20 +95,19 @@ function average() {
             answer: "*"
         },
         {
-            id: "practical-even-odd",
+            id: "practical-even-odd-ssc",
             unitId: "unit-1",
             challengeId: "even-odd",
             title: "Check even or odd",
-            description: "Use the remainder operator in an if/else decision.",
-            concept: "Convert prompt text with Number, reject blank or non-numeric input, then check the remainder. Zero is a valid even number.",
-            exampleCode: `function check(input) {
-                if (input === null || String(input).trim() === "") return "INVALID";
-    const number = Number(input);
-    if (!Number.isFinite(number)) return "INVALID";
-    if (number % 2 === 0) {
-        return "EVEN";
-    }
-    return "ODD";
+            description: "Read a number and use if/else with the remainder operator.",
+            concept: "The practical converts the prompt input to a number. If its remainder after division by 2 is 0, it is even; otherwise it is odd.",
+            exampleCode: `let no1;
+no1 = Number(prompt("Enter your number"));
+
+if (no1 % 2 === 0) {
+    alert(no1 + " is the even");
+} else {
+    alert(no1 + " is the odd");
 }`,
             question: "What is 7 % 2?",
             options: [
@@ -109,100 +118,113 @@ function average() {
             answer: "1"
         },
         {
-            id: "practical-largest-three",
+            id: "practical-largest-three-ssc",
             unitId: "unit-1",
             challengeId: "largest-three",
             title: "Find the largest of three",
-            description: "Compare three values and make sure ties still work.",
-            concept: "Compare each value against the other two. Using >= handles equal values; a final else can cover the remaining case.",
-            exampleCode: `function largest(a, b, c) {
-    if (a >= b && a >= c) return a;
-    if (b >= a && b >= c) return b;
-    return c;
+            description: "Read three numbers and compare them with if/else.",
+            concept: "The practical compares the first number with the other two, then the second with the other two. The final else handles the remaining case.",
+            exampleCode: `let no1, no2, no3;
+no1 = Number(prompt("Enter your 1st number"));
+no2 = Number(prompt("Enter your 2nd number"));
+no3 = Number(prompt("Enter your 3rd number"));
+
+if (no1 > no2 && no1 > no3) {
+    alert(no1 + " is the largest");
+} else if (no2 > no1 && no2 > no3) {
+    alert(no2 + " is the largest");
+} else {
+    alert(no3 + " is largest");
 }`,
-            question: "What should the program return for (8, 8, 3)?",
+            question: "Which values are compared in no1 > no2 && no1 > no3?",
             options: [
-                { value: "8", label: "8" },
-                { value: "3", label: "3" },
-                { value: "error", label: "An error" }
+                { value: "no1", label: "no1 with both no2 and no3" },
+                { value: "no2", label: "no2 with itself" },
+                { value: "no3", label: "the sum of all three" }
             ],
-            answer: "8"
+            answer: "no1"
         },
         {
-            id: "practical-positive-square",
+            id: "practical-positive-square-ssc",
             unitId: "unit-2",
             challengeId: "positive-square",
             title: "Square a positive number",
-            description: "Combine a condition with multiplication.",
-            concept: "The original practical squares a positive input and handles other values separately. This exercise returns null for zero or negative input so the behavior is easy to test.",
-            exampleCode: `function squarePositive(number) {
-    if (number > 0) {
-        return number * number;
+            description: "Use the square() practical and its positive-number condition.",
+            concept: "The practical's square() function reads a number, checks if it is greater than 0, multiplies it by itself, and displays the result with alert().",
+            exampleCode: `function square() {
+    let n = Number(prompt("Enter your number:"));
+    if (n > 0) {
+        let n2 = n * n;
+        alert("The square of the positive number is: " + n2);
+    } else {
+        alert("Your number is negative");
     }
-    return null;
 }`,
-            question: "What is the square of 6?",
+            question: "Which condition checks that n is positive?",
             options: [
-                { value: "12", label: "12" },
-                { value: "36", label: "36" },
-                { value: "66", label: "66" }
+                { value: "n > 0", label: "n > 0" },
+                { value: "n < 0", label: "n < 0" },
+                { value: "n === 0", label: "n === 0" }
             ],
-            answer: "36"
+            answer: "n > 0"
         },
         {
-            id: "practical-factorial",
+            id: "practical-factorial-ssc",
             unitId: "unit-2",
             challengeId: "factorial",
             title: "Calculate a factorial",
-            description: "Use a loop to multiply from n down to 1.",
-            concept: "Factorial keeps a running product. Start at 1, multiply by each integer down to 1, and leave the result as 1 for 0!.",
-            exampleCode: `function factorial(n) {
-    let result = 1;
-    for (let i = n; i >= 1; i--) {
-        result *= i;
-    }
-    return result;
-}`,
-            question: "What is 0! (zero factorial)?",
+            description: "Use a for loop to multiply from the entered number down to 1.",
+            concept: "The practical starts fact at 1. The loop counts down from the entered number to 1 and multiplies each value into fact.",
+            exampleCode: `let a, i, fact = 1;
+a = Number(prompt("Enter the number you want factorial of"));
+
+for (i = a; i >= 1; i = i - 1) {
+    fact = fact * i;
+}
+
+document.write("Factorial of " + a + " is " + fact);`,
+            question: "What is fact after the loop for input 4?",
             options: [
-                { value: "0", label: "0" },
-                { value: "1", label: "1" },
-                { value: "undefined", label: "undefined" }
+                { value: "10", label: "10" },
+                { value: "24", label: "24" },
+                { value: "16", label: "16" }
             ],
-            answer: "1"
+            answer: "24"
         },
         {
-            id: "practical-sum-squares",
+            id: "practical-sum-squares-ssc",
             unitId: "unit-2",
             challengeId: "sum-squares",
             title: "Add the squares from 1 to n",
-            description: "Accumulate i * i inside a counted loop.",
-            concept: "The practical adds 1² + 2² + ... + 10². A loop counter starts at 1, the condition includes n, and the running total adds i * i on every pass.",
-            exampleCode: `function sumSquares(n) {
-    let total = 0;
-    for (let i = 1; i <= n; i++) {
-        total += i * i;
-    }
-    return total;
-}`,
-            question: "Which condition includes n as the final value?",
+            description: "Use a loop and add i * i to a running sum.",
+            concept: "The practical asks for a number, counts down to 1, and adds each number multiplied by itself to sum.",
+            exampleCode: `let i, a, sum = 0;
+a = Number(prompt("Enter the total numbers you want to sum the squares of"));
+
+for (i = a; i >= 1; i = i - 1) {
+    sum = sum + (i * i);
+}
+
+alert("Sum of squares from 1-" + a + " is: " + sum);`,
+            question: "What is 3 * 3?",
             options: [
-                { value: "i < n", label: "i < n" },
-                { value: "i <= n", label: "i <= n" },
-                { value: "i === n", label: "i === n" }
+                { value: "6", label: "6" },
+                { value: "9", label: "9" },
+                { value: "33", label: "33" }
             ],
-            answer: "i <= n"
+            answer: "9"
         },
         {
-            id: "practical-string-length",
+            id: "practical-string-length-ssc",
             unitId: "unit-2",
             challengeId: "string-length",
             title: "Count characters in a string",
             description: "Read text and use its length property.",
-            concept: "prompt() returns text. A string's .length property gives its character count, including spaces.",
-            exampleCode: `const text = prompt("Enter your text");
-const count = text.length;
-document.write("Character count: " + count);`,
+            concept: "prompt() reads text. The .length property gives the number of characters, including spaces.",
+            exampleCode: `let i, j;
+i = prompt("Enter your text");
+j = i.length;
+document.write("THE number of characters is" + j);`,
             question: "How many characters are in \"CS practical\"?",
             options: [
                 { value: "11", label: "11" },
@@ -212,18 +234,26 @@ document.write("Character count: " + count);`,
             answer: "12"
         },
         {
-            id: "practical-array-even-odd",
+            id: "practical-array-even-odd-ssc",
             unitId: "unit-3",
             challengeId: "array-even-odd",
             title: "Classify even and odd array values",
-            description: "Loop through an array and label every value.",
-            concept: "First collect the array values, then loop from index 0 while index < array.length. Apply the same remainder check to each element.",
-            exampleCode: `function classify(numbers) {
-    const labels = [];
-    for (let i = 0; i < numbers.length; i++) {
-        labels.push(numbers[i] % 2 === 0 ? "EVEN" : "ODD");
+            description: "Read an array and display whether each value is even or odd.",
+            concept: "The practical first asks for the array size, then reads each element in a loop. A second loop checks each value with % 2.",
+            exampleCode: `let i;
+let a = Number(prompt("Enter size of array"));
+let arr = [a];
+
+for (i = 0; i < a; i = i + 1) {
+    arr[i] = Number(prompt("Enter element: ", i));
+}
+
+for (i = 0; i < a; i = i + 1) {
+    if (arr[i] % 2 === 0) {
+        document.write(arr[i] + ": EVEN <br>");
+    } else {
+        document.write(arr[i] + ": ODD <br>");
     }
-    return labels;
 }`,
             question: "Which index is the first element of a JavaScript array?",
             options: [
@@ -234,97 +264,364 @@ document.write("Character count: " + count);`,
             answer: "0"
         },
         {
-            id: "practical-sum-array",
+            id: "practical-sum-array-ssc",
             unitId: "unit-3",
             challengeId: "sum-array",
             title: "Find the sum of an array",
-            description: "Use a zero-based loop and a running total.",
-            concept: "Start the total at 0. Visit indices 0 through length - 1 exactly once, adding each element. Starting at 1 skips the first value.",
-            exampleCode: `function sumArray(numbers) {
-    let total = 0;
-    for (let i = 0; i < numbers.length; i++) {
-        total += numbers[i];
-    }
-    return total;
-}`,
-            question: "What is the safest starting value for a sum?",
+            description: "Read ten numbers and add them to a running sum.",
+            concept: "The practical starts sum at 0. Each pass through the for loop reads one number and adds it to sum.",
+            exampleCode: `let i, sum = 0;
+let arr = [];
+
+for (i = 1; i <= 10; i = i + 1) {
+    arr[i] = Number(prompt("Enter number " + i));
+    sum = sum + arr[i];
+}
+
+document.write("the sum is " + sum);`,
+            question: "What is the starting value of sum?",
             options: [
                 { value: "0", label: "0" },
                 { value: "1", label: "1" },
-                { value: "numbers[0]", label: "numbers[0]" }
+                { value: "10", label: "10" }
             ],
             answer: "0"
         },
         {
-            id: "practical-average-array",
+            id: "practical-average-array-ssc",
             unitId: "unit-3",
             challengeId: "array-average",
-            title: "Average the values in an array",
-            description: "Reuse the array sum and divide by the number of values.",
-            concept: "Average = sum / count. The count is numbers.length, not the last index. An empty array has no average, so this course returns null for it.",
-            exampleCode: `function average(numbers) {
-    if (numbers.length === 0) return null;
-    let total = 0;
-    for (const number of numbers) total += number;
-    return total / numbers.length;
-}`,
-            question: "For [4, 8, 12], what do you divide the sum by?",
+            title: "Find the average of an array",
+            description: "Add ten numbers and divide their sum by ten.",
+            concept: "The average is the sum divided by the number of values. This practical reads ten values, so divide by 10.",
+            exampleCode: `let i, sum = 0;
+let arr = [];
+
+for (i = 1; i <= 10; i = i + 1) {
+    arr[i] = Number(prompt("Enter number " + i));
+    sum = sum + arr[i];
+}
+
+let avg = sum / 10;
+document.write("Average of numbers " + arr + " is " + avg);`,
+            question: "If ten numbers have a sum of 50, what do you divide by?",
             options: [
-                { value: "2", label: "2" },
-                { value: "3", label: "3" },
-                { value: "12", label: "12" }
+                { value: "5", label: "5" },
+                { value: "10", label: "10" },
+                { value: "50", label: "50" }
             ],
-            answer: "3"
+            answer: "10"
         },
         {
-            id: "practical-nested-loops",
+            id: "practical-nested-loops-ssc",
             unitId: "unit-3",
             challengeId: "multiplication-table",
             title: "Generate a multiplication table",
-            description: "Use nested loops to make rows and columns.",
-            concept: "The outer loop controls the row. For every outer-loop pass, the inner loop visits each column. Small bounds make the table easier to inspect and test.",
-            exampleCode: `function table(rows, columns) {
-    const result = [];
-    for (let row = 1; row <= rows; row++) {
-        const values = [];
-        for (let column = 1; column <= columns; column++) {
-            values.push(row * column);
-        }
-        result.push(values);
+            description: "Use nested loops to print a table of rows and columns.",
+            concept: "The outer loop selects a row. For each outer-loop pass, the inner loop calculates and displays the products for that row.",
+            exampleCode: `let i, j;
+document.write("In columns and rows<br><br>");
+
+for (i = 1; i <= 5; i = i + 1) {
+    for (j = 1; j <= 10; j = j + 1) {
+        document.write(i * j + ", ");
     }
-    return result;
+    document.write("<br>");
 }`,
-            question: "How many times does the inner loop run for each row?",
+            question: "When does the inner loop run?",
             options: [
-                { value: "once total", label: "Once total" },
                 { value: "once per outer-loop pass", label: "Once per outer-loop pass" },
-                { value: "only after the outer loop ends", label: "Only after the outer loop ends" }
+                { value: "only before the outer loop", label: "Only before the outer loop" },
+                { value: "only after the outer loop", label: "Only after the outer loop" }
             ],
             answer: "once per outer-loop pass"
+        },
+        {
+            id: "html-forms-basics",
+            unitId: "unit-4",
+            challengeId: "checkpoint-4-form-ssc",
+            title: "Create an HTML form",
+            description: "Practice the HTML input types, labels, buttons, drop-downs, and text areas.",
+            concept: "A form groups information a user can enter. Input types include text, password, email, number, radio, checkbox, dates/times, color, range, search, telephone, URL, file, and buttons. Select, textarea, and button are additional form elements.",
+            exampleCode: `<form>
+    <label for="student-name">Name:</label>
+    <input id="student-name" name="student-name" type="text">
+
+                <label for="student-email">Email:</label>
+                <input id="student-email" name="student-email" type="email">
+
+                <label for="student-password">Password:</label>
+    <input id="student-password" name="student-password" type="password">
+
+    <label for="student-age">Age:</label>
+    <input id="student-age" name="student-age" type="number">
+
+    <label><input type="radio" name="shift" value="morning"> Morning</label>
+    <label><input type="checkbox" name="subject" value="html"> HTML</label>
+    <label for="student-date">Date:</label>
+    <input id="student-date" name="student-date" type="date">
+    <input name="student-time" type="time">
+    <input name="student-datetime" type="datetime-local">
+    <input name="student-month" type="month">
+    <input name="student-week" type="week">
+    <input name="student-color" type="color">
+    <input name="student-range" type="range">
+    <input name="student-search" type="search">
+    <input name="student-phone" type="tel">
+    <input name="student-website" type="url">
+    <input name="student-file" type="file">
+    <input name="student-hidden" type="hidden" value="class10">
+
+    <label for="student-class">Class:</label>
+    <select id="student-class" name="student-class">
+        <option>Class 10</option>
+    </select>
+
+    <label for="student-note">Note:</label>
+    <textarea id="student-note" name="student-note"></textarea>
+
+    <input type="submit" value="Submit">
+    <input type="reset" value="Clear">
+    <input type="button" value="Click">
+    <input type="image" src="submit.png" alt="Submit image">
+    <button type="submit">Submit with button</button>
+    <button type="reset">Clear with button</button>
+    <button type="button">Another button</button>
+</form>`,
+            question: "Which input type hides the characters as a password is typed?",
+            options: [
+                { value: "text", label: "text" },
+                { value: "password", label: "password" },
+                { value: "checkbox", label: "checkbox" }
+            ],
+            answer: "password"
+        },
+        {
+            id: "css-forms-tables",
+            unitId: "unit-4",
+            challengeId: "checkpoint-4-style-ssc",
+            title: "Style forms and tables with CSS",
+            description: "Add readable borders, spacing, colors, and sizes to form controls and table cells.",
+            concept: "CSS selectors choose which elements to style. Borders outline form controls and table cells; padding adds space inside them. border-collapse combines adjacent table borders.",
+            exampleCode: `form {
+    padding: 16px;
+    border: 1px solid #64748b;
+}
+
+input, button, select, textarea {
+    margin: 6px;
+    padding: 8px;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #64748b;
+    padding: 8px;
+}
+
+th {
+    background-color: #dbeafe;
+}`,
+            question: "Which CSS property adds space inside a border?",
+            options: [
+                { value: "padding", label: "padding" },
+                { value: "margin", label: "margin" },
+                { value: "color", label: "color" }
+            ],
+            answer: "padding"
+        },
+        {
+            id: "css-animation-basics",
+            unitId: "unit-4",
+            challengeId: "checkpoint-4-animation-ssc",
+            title: "Blink text and move a rotating square",
+            description: "Use @keyframes and animation to blink text and move a square through a full turn.",
+            concept: "@keyframes describes the start and end of an animation. The animation property chooses the keyframes and duration. opacity can make text appear to blink, while transform can move and rotate a square.",
+            exampleCode: `.blink-text {
+    animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+    to {
+        visibility: hidden;
+    }
+}
+
+.moving-square {
+    width: 70px;
+    height: 70px;
+    background-color: royalblue;
+    animation: moveAndTurn 3s linear infinite;
+}
+
+@keyframes moveAndTurn {
+    from {
+        transform: translateX(0) rotate(0deg);
+    }
+    to {
+        transform: translateX(180px) rotate(360deg);
+    }
+}`,
+            question: "Which transform value makes one complete turn?",
+            options: [
+                { value: "rotate(90deg)", label: "rotate(90deg)" },
+                { value: "rotate(180deg)", label: "rotate(180deg)" },
+                { value: "rotate(360deg)", label: "rotate(360deg)" }
+            ],
+            answer: "rotate(360deg)"
         }
     ],
 
     challenges: {
-        "html-practical": {
-            title: "Create a practical results page",
+        "checkpoint-4-form-ssc": {
+            title: "Build a student information form",
             language: "html",
-            description: "Build the structure, formatting, lists, link, and table from your HTML practical.",
+            questionType: "BUILD A FORM",
+            assessmentTaskId: "checkpoint-4-form-ssc",
+            description: "Create a form with common input types, labels, a selection list, text area, and buttons.",
+            instructions: [
+                "Add text, password, email, number, radio, checkbox, and date inputs.",
+                "Add a select menu, textarea, and clear labels.",
+                "Add submit, reset, and button controls."
+            ],
+            example: "Use type=\"text\" for a name and type=\"password\" for a password.",
+            hint: "A select menu contains option elements. A textarea is a separate form control.",
+            starterCode: `<!DOCTYPE html>
+<html>
+<head><title>Student form</title></head>
+<body>
+    <form>
+        <!-- Add labeled form inputs and buttons -->
+    </form>
+</body>
+</html>`,
+            testCases: [
+                { label: "Form and labels" },
+                { label: "Text, password, email, and number" },
+                { label: "Radio and checkbox" },
+                { label: "Date, time, color, range, search, tel, URL, file, and hidden inputs" },
+                { label: "Select menu and text area" },
+                { label: "Submit, reset, image, and button controls" }
+            ],
+            validate(code) {
+                const parsed = new DOMParser().parseFromString(code, "text/html");
+                const form = parsed.querySelector("form");
+                const checks = [
+                    Boolean(form && form.querySelector("label")),
+                    ["text", "password", "email", "number"]
+                        .every(type => Boolean(form?.querySelector(`input[type="${type}"]`))),
+                    ["radio", "checkbox"]
+                        .every(type => Boolean(form?.querySelector(`input[type="${type}"]`))),
+                    ["date", "time", "datetime-local", "month", "week", "color", "range", "search", "tel", "url", "file", "hidden"]
+                        .every(type => Boolean(form?.querySelector(`input[type="${type}"]`))),
+                    Boolean(form?.querySelector("select option")) &&
+                        Boolean(form?.querySelector("textarea")),
+                    ["submit", "reset", "button"]
+                        .every(type => Boolean(form?.querySelector(`input[type="${type}"]`))) &&
+                        Boolean(form?.querySelector('input[type="image"]')) &&
+                        Boolean(form?.querySelector("button"))
+                ];
+                const failedTest = checks.findIndex(check => !check);
+                return failedTest === -1
+                    ? { success: true, passedTests: checks.length, message: "All form practical checks passed." }
+                    : { success: false, passedTests: failedTest, failedTest, message: `Add the required ${this.testCases[failedTest].label.toLowerCase()}.` };
+            }
+        },
+        "checkpoint-4-style-ssc": {
+            title: "Style forms and tables",
+            language: "css",
+            questionType: "STYLE FORMS AND TABLES",
+            assessmentTaskId: "checkpoint-4-style-ssc",
+            description: "Style form controls and table cells with borders, padding, and basic colors.",
+            instructions: [
+                "Add spacing and borders to the form and its inputs.",
+                "Collapse table borders.",
+                "Add borders and padding to table headings and cells."
+            ],
+            example: "table { border-collapse: collapse; }",
+            hint: "The CSS preview contains a form, inputs, button, and a two-row table.",
+            starterCode: `/* Style the form and its controls */
+
+/* Style the table, headings, and cells */`,
+            testCases: [
+                { label: "Form controls styled" },
+                { label: "Table borders collapsed" },
+                { label: "Table cells have borders and padding" }
+            ],
+            validate(code) {
+                const checks = [
+                    /form\s*\{[^}]*border/i.test(code) &&
+                        /input[^{}]*\{[^}]*padding/i.test(code) &&
+                        /button[^{}]*\{/i.test(code),
+                    /table\s*\{[^}]*border-collapse\s*:\s*collapse/i.test(code),
+                    /th\s*,?\s*td\s*\{[^}]*border/i.test(code) &&
+                        /th\s*,?\s*td\s*\{[^}]*padding/i.test(code)
+                ];
+                const failedTest = checks.findIndex(check => !check);
+                return failedTest === -1
+                    ? { success: true, passedTests: checks.length, message: "Form and table styles passed." }
+                    : { success: false, passedTests: failedTest, failedTest, message: `Complete the ${this.testCases[failedTest].label.toLowerCase()} requirement.` };
+            }
+        },
+        "checkpoint-4-animation-ssc": {
+            title: "Animate blinking text and a moving square",
+            language: "css",
+            questionType: "ADD THE ANIMATIONS",
+            assessmentTaskId: "checkpoint-4-animation-ssc",
+            description: "Make the preview heading blink and move the square horizontally through one full rotation.",
+            instructions: [
+                "Add a blink animation to .blink-text.",
+                "Define the blink keyframes.",
+                "Animate .moving-square with translateX() and rotate(360deg)."
+            ],
+            example: ".moving-square { animation: moveAndTurn 3s linear infinite; }",
+            hint: "Use @keyframes and transform in the ending keyframe.",
+            starterCode: `/* Make the preview text blink */
+
+/* Move and rotate the square */
+
+/* Define the keyframes */`,
+            testCases: [
+                { label: "Blinking text animation" },
+                { label: "Moving square animation" },
+                { label: "Full 360 degree rotation" }
+            ],
+            validate(code) {
+                const checks = [
+                    /\.blink-text\s*\{[^}]*animation\s*:/i.test(code) &&
+                        /@keyframes\s+\w+[\s\S]*visibility\s*:\s*hidden|@keyframes\s+\w+[\s\S]*opacity\s*:\s*0/i.test(code),
+                    /\.moving-square\s*\{[^}]*animation\s*:/i.test(code) &&
+                        /@keyframes\s+\w+[\s\S]*translateX\s*\(/i.test(code),
+                    /rotate\s*\(\s*360deg\s*\)/i.test(code)
+                ];
+                const failedTest = checks.findIndex(check => !check);
+                return failedTest === -1
+                    ? { success: true, passedTests: checks.length, message: "Both CSS animations passed." }
+                    : { success: false, passedTests: failedTest, failedTest, message: `Complete the ${this.testCases[failedTest].label.toLowerCase()} requirement.` };
+            }
+        },
+        "html-practical": {
+            title: "Create a practical HTML page",
+            language: "html",
+            description: "Build the headings, formatting, lists, link, and table from your practical.",
             instructions: [
                 "Add the html, head, and body elements.",
-                "Add a heading, paragraph, and formatted text.",
+                "Add headings, a paragraph, and formatted text.",
                 "Add ordered, unordered, and definition lists.",
                 "Add a link and a table with headings and data."
             ],
-            example: "A page with headings, formatted text, lists, a link, and a marks table.",
+            example: "A page with headings, formatted text, lists, a link, and a table.",
             hint: "A definition list uses <dl>, <dt>, and <dd>. A table uses <tr>, <th>, and <td>.",
             starterCode: `<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Student results</title>
+    <title>Practicals</title>
 </head>
 <body>
-    <!-- Add your heading, paragraph, lists, and table -->
+    <!-- Add the practical HTML elements -->
 </body>
 </html>`,
             testCases: [
@@ -337,10 +634,7 @@ document.write("Character count: " + count);`,
             ],
             validate(code) {
                 const markup = code.replace(/<!--[\s\S]*?-->/g, "");
-                const documentPreview = new DOMParser().parseFromString(
-                    markup,
-                    "text/html"
-                );
+                const documentPreview = new DOMParser().parseFromString(markup, "text/html");
                 const checks = [
                     /<html\b/i.test(markup) && /<head\b/i.test(markup) && /<body\b/i.test(markup),
                     Boolean(documentPreview.body.querySelector("h1,h2,h3,h4,h5,h6")) &&
@@ -349,451 +643,481 @@ document.write("Character count: " + count);`,
                         Boolean(documentPreview.body.querySelector("ul")) &&
                         Boolean(documentPreview.body.querySelector("dl dt")) &&
                         Boolean(documentPreview.body.querySelector("dl dd")),
-                    Boolean(documentPreview.body.querySelector("strong,b,em,i,u,sup,sub,small")),
+                    Boolean(documentPreview.body.querySelector("b,strong,u,i,em,sup,sub,small")),
                     Boolean(documentPreview.body.querySelector("a[href]")),
                     Boolean(documentPreview.body.querySelector("table tr th")) &&
                         Boolean(documentPreview.body.querySelector("table tr td"))
                 ];
-                const passedTests = checks.findIndex(check => !check);
-                return passedTests === -1
+                const failedTest = checks.findIndex(check => !check);
+                return failedTest === -1
                     ? { success: true, passedTests: checks.length, message: "All HTML practical checks passed." }
-                    : { success: false, passedTests, message: `Complete the ${this.testCases[passedTests].label.toLowerCase()} requirement.` };
+                    : { success: false, passedTests: failedTest, failedTest, message: `Complete the ${this.testCases[failedTest].label.toLowerCase()} requirement.` };
             }
         },
-
         "three-operations": {
             title: "Calculate sum, product, and average",
             language: "javascript",
-            functionName: "calculateValues",
-            description: "Write calculateValues(a, b, c) and return an object with sum, product, and average.",
+            lessonId: "practical-operators-ssc",
+            description: "Use the three functions from the practical to display each result.",
             instructions: [
-                "Define calculateValues(a, b, c).",
-                "Calculate the sum and product of all three values.",
-                "Calculate their average by dividing the sum by 3.",
-                "Return { sum, product, average }."
+                "Read three numbers with prompt() and Number().",
+                "Use sum(), product(), and avg() as in the practical.",
+                "Display each result with alert()."
             ],
-            example: "calculateValues(2, 3, 4) → { sum: 9, product: 24, average: 3 }",
-            hint: "Keep the three arithmetic results in named properties of one returned object.",
-            starterCode: `function calculateValues(a, b, c) {
-    // Return an object with sum, product, and average
-}`,
-            testCases: [
-                { label: "2, 3, 4" },
-                { label: "1, 5, 9" },
-                { label: "Negative input" }
-            ],
-            cases: [
-                { input: [2, 3, 4], expected: { sum: 9, product: 24, average: 3 } },
-                { input: [1, 5, 9], expected: { sum: 15, product: 45, average: 5 } },
-                { input: [-2, 3, 4], expected: { sum: 5, product: -24, average: 5 / 3 } }
+            example: "For 2, 3, 4: sum 9, product 24, average 3.",
+            hint: "Use + for sum, * for product, and divide the sum by 3 for the average.",
+            starterCode: `let n1 = Number(prompt("Enter number 1"));
+let n2 = Number(prompt("Enter number 2"));
+let n3 = Number(prompt("Enter number 3"));
+
+function sum() {
+    let sum = n1 + n2 + n3;
+    alert("sum is:" + sum);
+}
+
+function product() {
+    let product = n1 * n2 * n3;
+    alert("product is:" + product);
+}
+
+function avg() {
+    let avg = (n1 + n2 + n3) / 3;
+    alert("avg is:" + avg);
+}
+
+sum();
+product();
+avg();`,
+            testCases: [{ label: "2, 3, 4" }, { label: "1, 5, 9" }],
+            programCases: [
+                { input: ["2", "3", "4"], expectedOutput: ["sum is:9", "product is:24", "avg is:3"] },
+                { input: ["1", "5", "9"], expectedOutput: ["sum is:15", "product is:45", "avg is:5"] }
             ]
         },
-
         "even-odd": {
-            title: "Check whether a number is even",
+            title: "Check whether a number is even or odd",
             language: "javascript",
-            functionName: "classifyNumber",
-            description: "Write classifyNumber(input), returning EVEN, ODD, or INVALID for blank or non-numeric input.",
-            instructions: ["Use the remainder operator.", "Return EVEN for zero and other even integers.", "Return ODD for odd integers.", "Reject blank and non-numeric input."],
-            example: 'classifyNumber("7") → "ODD"',
-            hint: "Check for null, blank text, and non-finite numbers before using % 2.",
-            starterCode: `function classifyNumber(input) {
-    if (input === null || String(input).trim() === "") return "INVALID";
-    const number = Number(input);
-    if (!Number.isFinite(number)) return "INVALID";
-    return number % 2 === 0 ? "EVEN" : "ODD";
-}`,
-            testCases: [
-                { label: "Positive even" },
-                { label: "Odd" },
-                { label: "Zero" },
-                { label: "Negative even" },
-                { label: "Blank input" },
-                { label: "Non-numeric input" },
-                { label: "Cancelled input" }
+            lessonId: "practical-even-odd-ssc",
+            description: "Use the practical's if/else and remainder check.",
+            instructions: [
+                "Read a number using Number(prompt(...)).",
+                "Check if no1 % 2 is 0.",
+                "Display the even or odd message with alert()."
             ],
-            cases: [
-                { input: [8], expected: "EVEN" },
-                { input: [7], expected: "ODD" },
-                { input: [0], expected: "EVEN" },
-                { input: [-4], expected: "EVEN" },
-                { input: [""], expected: "INVALID" },
-                { input: ["not a number"], expected: "INVALID" },
-                { input: [null], expected: "INVALID" }
+            example: "Input 8 displays: 8 is the even",
+            hint: "The remainder after dividing an even number by 2 is 0.",
+            starterCode: `let no1;
+no1 = Number(prompt("Enter your number"));
+
+if (no1 % 2 === 0) {
+    // Display the even message
+} else {
+    // Display the odd message
+}`,
+            testCases: [{ label: "Even number" }, { label: "Odd number" }, { label: "Zero" }],
+            programCases: [
+                { input: ["8"], expectedOutput: ["8 is the even"] },
+                { input: ["7"], expectedOutput: ["7 is the odd"] },
+                { input: ["0"], expectedOutput: ["0 is the even"] }
             ]
         },
-
         "largest-three": {
             title: "Find the largest of three numbers",
             language: "javascript",
-            functionName: "largestOfThree",
-            description: "Write largestOfThree(a, b, c), including when two values tie.",
-            instructions: ["Compare each value with the other two.", "Return the largest value.", "Use comparisons that handle ties."],
-            example: "largestOfThree(8, 8, 3) → 8",
-            hint: "Using >= instead of > makes equal maximum values work.",
-            starterCode: `function largestOfThree(a, b, c) {
-    // Return the largest value
+            lessonId: "practical-largest-three-ssc",
+            description: "Read and compare three numbers as in the practical.",
+            instructions: [
+                "Read three numbers with prompt() and Number().",
+                "Use if, else if, and else with && comparisons.",
+                "Display which number is largest."
+            ],
+            example: "For 9, 4, 2, display: 9 is the largest",
+            hint: "Compare each number with the other two.",
+            starterCode: `let no1, no2, no3;
+no1 = Number(prompt("Enter your 1st number"));
+no2 = Number(prompt("Enter your 2nd number"));
+no3 = Number(prompt("Enter your 3rd number"));
+
+if (no1 > no2 && no1 > no3) {
+    // Display no1 as the largest
+} else if (no2 > no1 && no2 > no3) {
+    // Display no2 as the largest
+} else {
+    // Display no3 as the largest
 }`,
-            testCases: [{ label: "First number largest" }, { label: "Third number largest" }, { label: "Equal largest values" }, { label: "Negative numbers" }],
-            cases: [
-                { input: [9, 4, 2], expected: 9 },
-                { input: [2, 4, 9], expected: 9 },
-                { input: [8, 8, 3], expected: 8 },
-                { input: [-2, -5, -1], expected: -1 }
+            testCases: [{ label: "First number largest" }, { label: "Second number largest" }, { label: "Third number largest" }],
+            programCases: [
+                { input: ["9", "4", "2"], expectedOutput: ["9 is the largest"] },
+                { input: ["2", "9", "5"], expectedOutput: ["9 is the largest"] },
+                { input: ["2", "4", "9"], expectedOutput: ["9 is largest"] }
             ]
         },
-
         "positive-square": {
             title: "Square a positive number",
             language: "javascript",
-            functionName: "squarePositive",
-            description: "Return n * n for positive n, and null for zero or negative input.",
-            instructions: ["Check whether n is greater than zero.", "Return its square when positive.", "Return null otherwise."],
-            example: "squarePositive(6) → 36",
-            hint: "The positive check is n > 0; zero should take the other branch.",
-            starterCode: `function squarePositive(n) {
-    // Return n squared when positive; otherwise return null
-}`,
-            testCases: [{ label: "Positive input" }, { label: "Zero" }, { label: "Negative input" }],
-            cases: [
-                { input: [6], expected: 36 },
-                { input: [0], expected: null },
-                { input: [-3], expected: null }
+            lessonId: "practical-positive-square-ssc",
+            description: "Complete the square() practical and run it for a positive number.",
+            instructions: [
+                "Define the square() function.",
+                "Read the number with Number(prompt(...)).",
+                "If n > 0, calculate n * n and display it with alert()."
+            ],
+            example: "For input 5, display: The square of the positive number is: 25",
+            hint: "The square is the number multiplied by itself.",
+            starterCode: `function square() {
+    let n = Number(prompt("Enter your number:"));
+    if (n > 0) {
+        let n2 = n * n;
+        alert("The square of the positive number is: " + n2);
+    } else {
+        alert("Your number is negative");
+    }
+}
+
+square();`,
+            testCases: [{ label: "Positive input" }],
+            programCases: [
+                { input: ["5"], expectedOutput: ["The square of the positive number is: 25"] }
             ]
         },
-
         factorial: {
             title: "Calculate a factorial",
             language: "javascript",
-            functionName: "factorial",
-            description: "Write factorial(n) for a non-negative integer.",
-            instructions: ["Start a running product at 1.", "Multiply by every integer from n down to 1.", "Return 1 when n is 0."],
-            example: "factorial(5) → 120",
-            hint: "Use result = 1 so the loop naturally handles factorial(0).",
-            starterCode: `function factorial(n) {
-    // Multiply from n down to 1
-}`,
-            testCases: [{ label: "factorial(0)" }, { label: "factorial(1)" }, { label: "factorial(5)" }, { label: "factorial(6)" }],
-            cases: [
-                { input: [0], expected: 1 },
-                { input: [1], expected: 1 },
-                { input: [5], expected: 120 },
-                { input: [6], expected: 720 }
+            lessonId: "practical-factorial-ssc",
+            description: "Complete the countdown loop and display the factorial.",
+            instructions: [
+                "Start fact at 1.",
+                "Count down from the entered number to 1.",
+                "Multiply fact by i on every loop pass."
             ],
-            lessonId: "practical-factorial"
-        },
+            example: "For input 4, the factorial is 24.",
+            hint: "Use i = i - 1 to count down.",
+            starterCode: `let a, i, fact = 1;
+a = Number(prompt("Enter the number you want factorial of"));
 
-        "sum-squares": {
-            title: "Sum the squares from 1 to n",
-            language: "javascript",
-            functionName: "sumSquares",
-            description: "Return 1² + 2² + ... + n² using a loop.",
-            instructions: ["Start total at 0.", "Loop from 1 through n.", "Add i * i on each pass."],
-            example: "sumSquares(3) → 14",
-            hint: "For each i, add i * i (not just i).",
-            starterCode: `function sumSquares(n) {
-    let total = 0;
-    // Add each square from 1 through n
-    return total;
-}`,
-            testCases: [{ label: "sumSquares(0)" }, { label: "sumSquares(1)" }, { label: "sumSquares(3)" }, { label: "sumSquares(10)" }],
-            cases: [
-                { input: [0], expected: 0 },
-                { input: [1], expected: 1 },
-                { input: [3], expected: 14 },
-                { input: [10], expected: 385 }
+for (i = a; i >= 1; i = i - 1) {
+    // Multiply fact by i
+}
+
+document.write("factorial of " + a + " is " + fact);`,
+            testCases: [{ label: "Factorial of 4" }, { label: "Factorial of 5" }],
+            programCases: [
+                { input: ["4"], expectedOutput: ["factorial of 4 is 24"] },
+                { input: ["5"], expectedOutput: ["factorial of 5 is 120"] }
             ]
         },
+        "sum-squares": {
+            title: "Add the squares from 1 to n",
+            language: "javascript",
+            lessonId: "practical-sum-squares-ssc",
+            description: "Use the practical's countdown loop to add each square.",
+            instructions: [
+                "Read a with Number(prompt(...)).",
+                "Count down from a to 1.",
+                "Add i * i to sum and display the answer."
+            ],
+            example: "For a = 3: 9 + 4 + 1 = 14",
+            hint: "Add i * i on each pass, not just i.",
+            starterCode: `let i, a, sum = 0;
+a = Number(prompt("Enter the total numbers you want to sum the squares of"));
 
+for (i = a; i >= 1; i = i - 1) {
+    // Add i squared to sum
+}
+
+alert("Sum of squares from 1-" + a + " is: " + sum);`,
+            testCases: [{ label: "Squares from 1 to 3" }, { label: "Squares from 1 to 5" }],
+            programCases: [
+                { input: ["3"], expectedOutput: ["Sum of squares from 1-3 is: 14"] },
+                { input: ["5"], expectedOutput: ["Sum of squares from 1-5 is: 55"] }
+            ]
+        },
         "string-length": {
             title: "Count the characters in a string",
             language: "javascript",
-            functionName: "countCharacters",
-            description: "Write countCharacters(text) using the string length property.",
-            instructions: ["Accept a string named text.", "Return the number of characters.", "Spaces count as characters."],
-            example: 'countCharacters("CS practical") → 12',
-            hint: "Strings have a .length property.",
-            starterCode: `function countCharacters(text) {
-    // Return the number of characters
-}`,
-            testCases: [{ label: "Empty string" }, { label: "Word" }, { label: "Text with spaces" }, { label: "Punctuation" }],
-            cases: [
-                { input: [""], expected: 0 },
-                { input: ["factorial"], expected: 9 },
-                { input: ["CS practical"], expected: 12 },
-                { input: ["a!?"], expected: 3 }
+            lessonId: "practical-string-length-ssc",
+            description: "Use the practical's prompt, .length, and document.write().",
+            instructions: [
+                "Read the text with prompt().",
+                "Set j to the text's .length.",
+                "Display the character count with document.write()."
+            ],
+            example: '"CS practical" has 12 characters.',
+            hint: "Spaces are characters too.",
+            starterCode: `let i, j;
+i = prompt("Enter your text");
+// Set j to the number of characters
+document.write("THE number of characters is" + j);`,
+            testCases: [{ label: "Text with a space" }, { label: "One word" }],
+            programCases: [
+                { input: ["CS practical"], expectedOutput: ["THE number of characters is12"] },
+                { input: ["factorial"], expectedOutput: ["THE number of characters is9"] }
             ]
         },
-
         "array-even-odd": {
-            title: "Classify every array value",
+            title: "Classify even and odd array values",
             language: "javascript",
-            functionName: "classifyNumbers",
-            description: "Return an array containing EVEN or ODD for each input value.",
-            instructions: ["Visit every array element from index 0.", "Use % 2 to decide its label.", "Keep the labels in the original order."],
-            example: 'classifyNumbers([2, 7, 0]) → ["EVEN", "ODD", "EVEN"]',
-            hint: "The first array index is 0; loop while i < numbers.length.",
-            starterCode: `function classifyNumbers(numbers) {
-    const labels = [];
-    // Add an EVEN or ODD label for every number
-    return labels;
+            lessonId: "practical-array-even-odd-ssc",
+            description: "Read an array, then display EVEN or ODD for every value.",
+            instructions: [
+                "Ask for the array size and read that many elements.",
+                "Use a second loop to visit the elements.",
+                "Use if/else with % 2 and display each label."
+            ],
+            example: "For values 2 and 7, display 2: EVEN and 7: ODD.",
+            hint: "Use the loop counter i to select arr[i].",
+            starterCode: `let i;
+let a = Number(prompt("Enter size of array"));
+let arr = [a];
+
+for (i = 0; i < a; i = i + 1) {
+    arr[i] = Number(prompt("Enter element: ", i));
+}
+
+for (i = 0; i < a; i = i + 1) {
+    // Check arr[i] and display EVEN or ODD
 }`,
-            testCases: [{ label: "Mixed values" }, { label: "Empty array" }, { label: "One value" }],
-            cases: [
-                { input: [[2, 7, 0, -3]], expected: ["EVEN", "ODD", "EVEN", "ODD"] },
-                { input: [[]], expected: [] },
-                { input: [[5]], expected: ["ODD"] }
+            testCases: [{ label: "Even, odd, even" }, { label: "One odd value" }],
+            programCases: [
+                { input: ["3", "2", "7", "4"], expectedOutput: ["2: EVEN <br>", "7: ODD <br>", "4: EVEN <br>"] },
+                { input: ["1", "5"], expectedOutput: ["5: ODD <br>"] }
             ]
         },
-
         "sum-array": {
-            title: "Sum the values in an array",
+            title: "Find the sum of an array",
             language: "javascript",
-            functionName: "sumArray",
-            description: "Write sumArray(numbers), adding every value exactly once.",
-            instructions: ["Start total at 0.", "Loop from index 0 to numbers.length - 1.", "Return the total."],
-            example: "sumArray([3, 4, 5]) → 12",
-            hint: "Use i < numbers.length; do not start at index 1.",
-            starterCode: `function sumArray(numbers) {
-    let total = 0;
-    // Add each value
-    return total;
-}`,
-            testCases: [{ label: "Empty array" }, { label: "One value" }, { label: "Several values" }, { label: "Negative values" }],
-            cases: [
-                { input: [[]], expected: 0 },
-                { input: [[7]], expected: 7 },
-                { input: [[3, 4, 5]], expected: 12 },
-                { input: [[-2, 5]], expected: 3 }
+            lessonId: "practical-sum-array-ssc",
+            description: "Read ten numbers and add them to sum.",
+            instructions: [
+                "Start sum at 0.",
+                "Use a loop from 1 to 10.",
+                "Read each value and add it to sum."
+            ],
+            example: "The sum of 1 through 10 is 55.",
+            hint: "Use sum = sum + arr[i] inside the loop.",
+            starterCode: `let i, sum = 0;
+let arr = [];
+
+for (i = 1; i <= 10; i = i + 1) {
+    arr[i] = Number(prompt("Enter number " + i));
+    // Add this value to sum
+}
+
+document.write("the sum is " + sum);`,
+            testCases: [{ label: "Numbers 1 through 10" }, { label: "Ten zeroes" }],
+            programCases: [
+                { input: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], expectedOutput: ["the sum is 55"] },
+                { input: ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0"], expectedOutput: ["the sum is 0"] }
             ]
         },
-
         "array-average": {
-            title: "Average the values in an array",
+            title: "Find the average of ten numbers",
             language: "javascript",
-            functionName: "averageArray",
-            description: "Return the sum divided by the number of values; return null for an empty array.",
-            instructions: ["Handle an empty array first.", "Add all values.", "Divide by numbers.length, not the last index."],
-            example: "averageArray([4, 8, 12]) → 8",
-            hint: "Three values have indices 0, 1, 2, but numbers.length is 3.",
-            starterCode: `function averageArray(numbers) {
-    // Return null for an empty array
-    // Otherwise return the average
-}`,
-            testCases: [{ label: "Empty array" }, { label: "One value" }, { label: "Several values" }],
-            cases: [
-                { input: [[]], expected: null },
-                { input: [[9]], expected: 9 },
-                { input: [[4, 8, 12]], expected: 8 }
+            lessonId: "practical-average-array-ssc",
+            description: "Read ten numbers, add them, and display their average.",
+            instructions: [
+                "Read ten values in a for loop and add them to sum.",
+                "Divide sum by 10 to find avg.",
+                "Display the average with document.write()."
+            ],
+            example: "The average of 1 through 10 is 5.5.",
+            hint: "Average = sum divided by the count of numbers.",
+            starterCode: `let i, sum = 0;
+let arr = [];
+
+for (i = 1; i <= 10; i = i + 1) {
+    arr[i] = Number(prompt("Enter number " + i));
+    sum = sum + arr[i];
+}
+
+let avg = sum / 10;
+document.write("Average of numbers " + arr + " is " + avg);`,
+            testCases: [{ label: "Numbers 1 through 10" }, { label: "Ten twos" }],
+            programCases: [
+                { input: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"], expectedOutput: ["Average of numbers ,1,2,3,4,5,6,7,8,9,10 is 5.5"] },
+                { input: ["2", "2", "2", "2", "2", "2", "2", "2", "2", "2"], expectedOutput: ["Average of numbers ,2,2,2,2,2,2,2,2,2,2 is 2"] }
             ]
         },
-
         "multiplication-table": {
             title: "Create a multiplication table",
             language: "javascript",
-            functionName: "multiplicationTable",
-            description: "Return a 2D array for a table with the requested row and column counts.",
-            instructions: ["Use an outer loop for rows.", "Use an inner loop for columns.", "Store each row as an array of products."],
-            example: "multiplicationTable(2, 3) → [[1, 2, 3], [2, 4, 6]]",
-            hint: "Create a fresh row array inside the outer loop.",
-            starterCode: `function multiplicationTable(rows, columns) {
-    const table = [];
-    // Use nested loops to build the rows
-    return table;
+            lessonId: "practical-nested-loops-ssc",
+            description: "Use nested loops to display products in rows and columns.",
+            instructions: [
+                "Use i for the row and j for the column.",
+                "Place the j loop inside the i loop.",
+                "Display i * j for each pair."
+            ],
+            example: "For row 2, columns 1 to 3 display 2, 4, 6.",
+            hint: "The inner loop runs for every pass of the outer loop.",
+            starterCode: `let i, j;
+
+for (i = 1; i <= 2; i = i + 1) {
+    for (j = 1; j <= 3; j = j + 1) {
+        // Display i multiplied by j
+    }
 }`,
-            testCases: [{ label: "2 rows by 3 columns" }, { label: "1 by 1" }, { label: "Empty dimensions" }],
-            cases: [
-                { input: [2, 3], expected: [[1, 2, 3], [2, 4, 6]] },
-                { input: [1, 1], expected: [[1]] },
-                { input: [0, 3], expected: [] }
+            testCases: [{ label: "Two rows, three columns" }],
+            programCases: [
+                { input: [], expectedOutput: ["1, ", "2, ", "3, ", "2, ", "4, ", "6, "] }
             ]
         },
-
-        "checkpoint-1-predict": {
+        "checkpoint-1-predict-ssc": {
             title: "Predict a running total",
             language: "javascript",
-            functionName: "predictTotal",
             questionType: "PREDICT THE OUTPUT",
-            assessmentTaskId: "checkpoint-1-predict",
-            description: "Trace the loop and return the final value printed by the program.",
-            instructions: ["Start total at 0.", "The loop adds i * 2 for i = 1, 2, 3, 4.", "Write predictTotal() so it returns the final total."],
-            example: "0 + 2 + 4 + 6 + 8 → 20",
-            hint: "Track both the loop counter and total on every pass.",
-            starterCode: `function predictTotal() {
-    // Return the value printed by:
-    // let total = 0;
-    // for (let i = 1; i <= 4; i++) total += i * 2;
-}`,
+            assessmentTaskId: "checkpoint-1-predict-ssc",
+            description: "Trace this practical-style loop and check the final value it displays.",
+            instructions: ["sum starts at 0.", "The loop adds i from 1 through 4.", "Use document.write() to display sum."],
+            example: "0 + 1 + 2 + 3 + 4 = 10",
+            hint: "Follow the loop one value of i at a time.",
+            starterCode: `let i, sum = 0;
+for (i = 1; i <= 4; i = i + 1) {
+    sum = sum + i;
+}
+document.write(sum);`,
             testCases: [{ label: "Final loop output" }],
-            cases: [{ input: [], expected: 20 }]
+            programCases: [{ input: [], expectedOutput: ["10"] }]
         },
-        "checkpoint-1-debug": {
+        "checkpoint-1-debug-ssc": {
             title: "Fix the even/odd practical",
             language: "javascript",
-            functionName: "classifyNumber",
             questionType: "FIX THE BUG",
-            assessmentTaskId: "checkpoint-1-debug",
-            description: "The labels are reversed, and the input is not validated. Fix both issues.",
-            instructions: ["Keep the function name.", "Correct the condition or returned labels.", "Check even, odd, zero, and invalid input."],
-            example: 'classifyNumber(4) → "EVEN"',
-            hint: "The branch for remainder 0 should return EVEN; blank and non-number input should be rejected.",
-            starterCode: `function classifyNumber(n) {
-    if (n === null || String(n).trim() === "") return "INVALID";
-    const number = Number(n);
-    if (!Number.isFinite(number)) return "INVALID";
-    if (number % 2 === 0) {
-        return "ODD"; // Bug: this label is wrong
-    }
-    return "EVEN";
+            assessmentTaskId: "checkpoint-1-debug-ssc",
+            description: "The program displays the wrong label for even numbers. Fix the if/else.",
+            instructions: ["Keep the prompt and remainder check.", "Fix which message each branch displays.", "Check an even and an odd value."],
+            example: "Input 4 should display: 4 is the even",
+            hint: "A remainder of 0 means the number is even.",
+            starterCode: `let no1 = Number(prompt("Enter your number"));
+if (no1 % 2 === 0) {
+    alert(no1 + " is the odd");
+} else {
+    alert(no1 + " is the even");
 }`,
-            testCases: [{ label: "Even number" }, { label: "Odd number" }, { label: "Zero" }],
-            cases: [
-                { input: [4], expected: "EVEN" },
-                { input: [7], expected: "ODD" },
-                { input: [0], expected: "EVEN" },
-                { input: [""], expected: "INVALID" },
-                { input: ["not a number"], expected: "INVALID" }
+            testCases: [{ label: "Even number" }, { label: "Odd number" }],
+            programCases: [
+                { input: ["4"], expectedOutput: ["4 is the even"] },
+                { input: ["7"], expectedOutput: ["7 is the odd"] }
             ]
         },
-        "checkpoint-1-write": {
-            title: "Write a largest-of-three function",
+        "checkpoint-1-write-ssc": {
+            title: "Write the largest-number practical",
             language: "javascript",
-            functionName: "largestOfThree",
-            questionType: "WRITE A FUNCTION",
-            assessmentTaskId: "checkpoint-1-write",
-            description: "Write the practical from scratch. Return the largest of three values.",
-            instructions: ["Define largestOfThree(a, b, c).", "Handle ties.", "Return the number, not a message."],
-            example: "largestOfThree(3, 9, 5) → 9",
-            hint: "Compare each candidate with both of the others.",
-            starterCode: `function largestOfThree(a, b, c) {
-    // Write your solution
-}`,
-            testCases: [{ label: "Largest first" }, { label: "Largest middle" }, { label: "Tie" }],
-            cases: [
-                { input: [9, 4, 2], expected: 9 },
-                { input: [3, 9, 5], expected: 9 },
-                { input: [7, 7, 2], expected: 7 }
+            questionType: "WRITE THE PRACTICAL",
+            assessmentTaskId: "checkpoint-1-write-ssc",
+            description: "Write a program that reads three numbers and displays the largest.",
+            instructions: ["Read three numbers using prompt() and Number().", "Compare them with if/else if/else.", "Display the largest number with alert()."],
+            example: "For 3, 9, 5, display: 9 is the largest",
+            hint: "Compare each number with both of the others using &&.",
+            starterCode: `// Read three numbers and display the largest`,
+            testCases: [{ label: "First is largest" }, { label: "Second is largest" }, { label: "Third is largest" }],
+            programCases: [
+                { input: ["9", "4", "2"], expectedOutput: ["9 is the largest"] },
+                { input: ["3", "9", "5"], expectedOutput: ["9 is the largest"] },
+                { input: ["3", "5", "9"], expectedOutput: ["9 is largest"] }
             ]
         },
-        "checkpoint-2-predict": {
+        "checkpoint-2-predict-ssc": {
             title: "Predict a factorial loop",
             language: "javascript",
-            functionName: "predictFactorialOutput",
             questionType: "PREDICT THE OUTPUT",
-            assessmentTaskId: "checkpoint-2-predict",
-            description: "Trace the loop and return the final value of fact for n = 4.",
-            instructions: ["fact starts at 1.", "The loop multiplies by 4, 3, 2, and 1.", "Write predictFactorialOutput() to return the final value."],
-            example: "1 × 4 × 3 × 2 × 1 → 24",
-            hint: "The first multiplication is 1 × 4; the loop stops after i reaches 1.",
-            starterCode: `function predictFactorialOutput() {
-    // Trace: for (let i = 4; i >= 1; i--) fact *= i;
-}`,
-            testCases: [{ label: "Final factorial output" }],
-            cases: [{ input: [], expected: 24 }]
+            assessmentTaskId: "checkpoint-2-predict-ssc",
+            description: "Trace the factorial loop for input 4 and check what it displays.",
+            instructions: ["fact starts at 1.", "The loop counts down from 4 to 1.", "Display fact with document.write()."],
+            example: "1 * 4 * 3 * 2 * 1 = 24",
+            hint: "Multiply fact by i on every loop pass.",
+            starterCode: `let n = Number(prompt("Enter a number"));
+let i, fact = 1;
+for (i = n; i >= 1; i = i - 1) {
+    fact = fact * i;
+}
+document.write("Factorial of " + n + " is " + fact);`,
+            testCases: [{ label: "Factorial of 4" }],
+            programCases: [{ input: ["4"], expectedOutput: ["Factorial of 4 is 24"] }]
         },
-        "checkpoint-2-debug": {
+        "checkpoint-2-debug-ssc": {
             title: "Fix the sum-of-squares loop",
             language: "javascript",
-            functionName: "sumSquares",
             questionType: "FIX THE BUG",
-            assessmentTaskId: "checkpoint-2-debug",
-            description: "This loop adds i instead of i squared. Repair the practical.",
-            instructions: ["Keep the function name.", "Add the square of every integer from 1 through n.", "Check the boundary values."],
-            example: "sumSquares(3) → 1 + 4 + 9 = 14",
-            hint: "The accumulated term should be i * i.",
-            starterCode: `function sumSquares(n) {
-    let total = 0;
-    for (let i = 1; i <= n; i++) {
-        total += i; // Bug: add the square
-    }
-    return total;
-}`,
-            testCases: [{ label: "One term" }, { label: "Three terms" }, { label: "Ten terms" }],
-            cases: [
-                { input: [1], expected: 1 },
-                { input: [3], expected: 14 },
-                { input: [10], expected: 385 }
-            ]
+            assessmentTaskId: "checkpoint-2-debug-ssc",
+            description: "This practical adds i instead of i * i. Fix the loop.",
+            instructions: ["Keep the countdown loop.", "Add the square of i to sum.", "Check the result when a is 3."],
+            example: "For 3, the sum is 9 + 4 + 1 = 14",
+            hint: "The term to add is i * i.",
+            starterCode: `let i, a = Number(prompt("Enter a number")), sum = 0;
+for (i = a; i >= 1; i = i - 1) {
+    sum = sum + i;
+}
+alert("Sum of squares from 1-" + a + " is: " + sum);`,
+            testCases: [{ label: "Squares from 1 to 3" }],
+            programCases: [{ input: ["3"], expectedOutput: ["Sum of squares from 1-3 is: 14"] }]
         },
-        "checkpoint-2-write": {
-            title: "Write the positive-square function",
+        "checkpoint-2-write-ssc": {
+            title: "Write the positive-square practical",
             language: "javascript",
-            functionName: "squarePositive",
-            questionType: "WRITE A FUNCTION",
-            assessmentTaskId: "checkpoint-2-write",
-            description: "Write the practical function for squaring positive input.",
-            instructions: ["Return n * n when n is positive.", "Return null for zero or negative input.", "Do not change the function name."],
-            example: "squarePositive(5) → 25",
-            hint: "Check n > 0 before multiplying.",
-            starterCode: `function squarePositive(n) {
-    // Write your solution
-}`,
-            testCases: [{ label: "Positive value" }, { label: "Zero" }, { label: "Negative value" }],
-            cases: [
-                { input: [5], expected: 25 },
-                { input: [0], expected: null },
-                { input: [-2], expected: null }
-            ]
+            questionType: "WRITE THE PRACTICAL",
+            assessmentTaskId: "checkpoint-2-write-ssc",
+            description: "Write the square() practical for a positive number.",
+            instructions: ["Define square().", "Read the number and check if it is greater than 0.", "Display its square with alert()."],
+            example: "For input 5, display: The square of the positive number is: 25",
+            hint: "Use n * n inside the positive-number branch.",
+            starterCode: `// Write square() and call it`,
+            testCases: [{ label: "Positive number" }],
+            programCases: [{ input: ["5"], expectedOutput: ["The square of the positive number is: 25"] }]
         },
-        "checkpoint-3-predict": {
+        "checkpoint-3-predict-ssc": {
             title: "Predict a multiplication row",
             language: "javascript",
-            functionName: "predictRow",
             questionType: "PREDICT THE OUTPUT",
-            assessmentTaskId: "checkpoint-3-predict",
-            description: "Trace the inner loop for row = 3 and return the values it prints for columns 1 through 4.",
-            instructions: ["Each printed value is row * column.", "Return the values in order as an array.", "Write predictRow()."],
-            example: "3 × 1, 3 × 2, 3 × 3, 3 × 4 → [3, 6, 9, 12]",
-            hint: "The inner loop runs once for every column.",
-            starterCode: `function predictRow() {
-    // Return the four values printed for row 3
+            assessmentTaskId: "checkpoint-3-predict-ssc",
+            description: "Trace the inner loop for row 3 and check the values it displays.",
+            instructions: ["The row number i is 3.", "The column number j goes from 1 through 4.", "Display i * j on every pass."],
+            example: "3, 6, 9, 12",
+            hint: "Multiply 3 by each value of j.",
+            starterCode: `let i = 3, j;
+for (j = 1; j <= 4; j = j + 1) {
+    document.write(i * j + ", ");
 }`,
-            testCases: [{ label: "Inner-loop output" }],
-            cases: [{ input: [], expected: [3, 6, 9, 12] }]
+            testCases: [{ label: "Values in the row" }],
+            programCases: [{ input: [], expectedOutput: ["3, ", "6, ", "9, ", "12, "] }]
         },
-        "checkpoint-3-debug": {
+        "checkpoint-3-debug-ssc": {
             title: "Fix the array-sum practical",
             language: "javascript",
-            functionName: "sumArray",
             questionType: "FIX THE BUG",
-            assessmentTaskId: "checkpoint-3-debug",
-            description: "The program skips the first value and overwrites the total. Fix both loop/accumulation mistakes.",
-            instructions: ["Start at array index 0.", "Add each value to the running total.", "Return 0 for an empty array."],
-            example: "sumArray([4, 5, 6]) → 15",
-            hint: "Use i = 0, i < numbers.length, and total += numbers[i].",
-            starterCode: `function sumArray(numbers) {
-    let total = 0;
-    for (let i = 1; i <= numbers.length; i++) {
-        total =+ numbers[i]; // Two intentional bugs
-    }
-    return total;
-}`,
-            testCases: [{ label: "First element included" }, { label: "All values accumulated" }, { label: "Empty array" }],
-            cases: [
-                { input: [[4, 5, 6]], expected: 15 },
-                { input: [[3, 10]], expected: 13 },
-                { input: [[]], expected: 0 }
-            ]
+            assessmentTaskId: "checkpoint-3-debug-ssc",
+            description: "The loop overwrites sum instead of adding each value. Fix the accumulation.",
+            instructions: ["Read ten values.", "Add each value to the running sum.", "Display the final sum."],
+            example: "The sum of 1 through 10 is 55.",
+            hint: "Use sum = sum + arr[i] so earlier values are kept.",
+            starterCode: `let i, sum = 0;
+let arr = [];
+for (i = 1; i <= 10; i = i + 1) {
+    arr[i] = Number(prompt("Enter number " + i));
+    sum = arr[i];
+}
+document.write("the sum is " + sum);`,
+            testCases: [{ label: "Numbers 1 through 10" }],
+            programCases: [{
+                input: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+                expectedOutput: ["the sum is 55"]
+            }]
         },
-        "checkpoint-3-write": {
+        "checkpoint-3-write-ssc": {
             title: "Write the array-average practical",
             language: "javascript",
-            functionName: "averageArray",
-            questionType: "WRITE A FUNCTION",
-            assessmentTaskId: "checkpoint-3-write",
-            description: "Write a function that returns the average of the numbers in an array.",
-            instructions: ["Return null for an empty array.", "Sum all values.", "Divide by the array length."],
-            example: "averageArray([2, 4, 6]) → 4",
-            hint: "After finding the total, divide it by numbers.length.",
-            starterCode: `function averageArray(numbers) {
-    // Write your solution
-}`,
-            testCases: [{ label: "Several values" }, { label: "One value" }, { label: "Empty array" }],
-            cases: [
-                { input: [[2, 4, 6]], expected: 4 },
-                { input: [[9]], expected: 9 },
-                { input: [[]], expected: null }
-            ]
+            questionType: "WRITE THE PRACTICAL",
+            assessmentTaskId: "checkpoint-3-write-ssc",
+            description: "Write the practical that reads ten numbers and displays their average.",
+            instructions: ["Read ten numbers and add them to sum.", "Divide sum by 10.", "Display the average with document.write()."],
+            example: "The average of 1 through 10 is 5.5.",
+            hint: "Use a for loop and calculate avg = sum / 10.",
+            starterCode: `// Read ten numbers, find their average, and display it`,
+            testCases: [{ label: "Numbers 1 through 10" }],
+            programCases: [{
+                input: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+                expectedOutput: ["Average of numbers ,1,2,3,4,5,6,7,8,9,10 is 5.5"]
+            }]
         }
     },
 
@@ -801,23 +1125,31 @@ document.write("Character count: " + count);`,
         {
             id: "checkpoint-1",
             unitId: "unit-1",
-            title: "Checkpoint 1 · Foundations",
-            description: "Predict an output, fix an even/odd bug, and write a largest-number function.",
-            taskIds: ["checkpoint-1-predict", "checkpoint-1-debug", "checkpoint-1-write"]
+            title: "Checkpoint 1 — HTML and decisions",
+            taskIds: ["checkpoint-1-predict-ssc", "checkpoint-1-debug-ssc", "checkpoint-1-write-ssc"]
         },
         {
             id: "checkpoint-2",
             unitId: "unit-2",
-            title: "Checkpoint 2 · Loops and strings",
-            description: "Trace a factorial, repair a loop, and write a conditional function.",
-            taskIds: ["checkpoint-2-predict", "checkpoint-2-debug", "checkpoint-2-write"]
+            title: "Checkpoint 2 — loops and strings",
+            taskIds: ["checkpoint-2-predict-ssc", "checkpoint-2-debug-ssc", "checkpoint-2-write-ssc"]
         },
         {
             id: "checkpoint-3",
             unitId: "unit-3",
-            title: "Checkpoint 3 · Arrays and nested loops",
-            description: "Predict a nested-loop row, debug an array sum, and write an array average.",
-            taskIds: ["checkpoint-3-predict", "checkpoint-3-debug", "checkpoint-3-write"]
+            title: "Checkpoint 3 — arrays and nested loops",
+            taskIds: ["checkpoint-3-predict-ssc", "checkpoint-3-debug-ssc", "checkpoint-3-write-ssc"]
+        },
+        {
+            id: "checkpoint-4",
+            unitId: "unit-4",
+            title: "Checkpoint 4 — forms and CSS",
+            description: "Build a form, style form controls and a table, and create the requested animations.",
+            taskIds: [
+                "checkpoint-4-form-ssc",
+                "checkpoint-4-style-ssc",
+                "checkpoint-4-animation-ssc"
+            ]
         }
     ]
 };
