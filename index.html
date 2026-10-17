@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10121b">
+
+    <title>CodeQuest — Learn. Build. Master.</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+
+<body>
+<div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+
+        <a class="brand" href="#" data-view="dashboard">
+            <div class="brand-icon">&lt;/&gt;</div>
+
+            <div>
+                <div class="brand-name">CodeQuest<span>.</span></div>
+                <div class="brand-caption">LEARN BY BUILDING</div>
+            </div>
+        </a>
+
+        <div class="sidebar-label">YOUR SPACE</div>
+
+        <nav class="navigation" aria-label="Main navigation">
+
+            <button class="nav-item active" data-view="dashboard">
+                <span class="nav-icon">◈</span>
+                <span>Dashboard</span>
+            </button>
+
+            <button class="nav-item" data-view="learn">
+                <span class="nav-icon">⌘</span>
+                <span>Learning path</span>
+            </button>
+
+            <button class="nav-item" data-view="playground">
+                <span class="nav-icon">⌨</span>
+                <span>Code playground</span>
+            </button>
+
+            <button class="nav-item" data-view="challenges">
+                <span class="nav-icon">⚡</span>
+                <span>Challenges</span>
+            </button>
+
+            <button class="nav-item" data-view="assessment">
+                <span class="nav-icon">▤</span>
+                <span>PBA assessment</span>
+            </button>
+
+            <button class="nav-item" data-view="achievements">
+                <span class="nav-icon">♜</span>
+                <span>Achievements</span>
+            </button>
+
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-quest">
+            <div class="quest-symbol">🚀</div>
+
+            <h3>Keep exploring.</h3>
+
+            <p>Every mistake is another step towards mastery.</p>
+
+            <button class="button button-small button-full" data-action="continue">
+                Continue learning →
+            </button>
+        </div>
+
+        <div class="sidebar-footer">
+            <span class="status-dot"></span>
+            Your progress is saved locally
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN APPLICATION -->
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <button
+                class="icon-button mobile-menu"
+                id="menuToggle"
+                aria-label="Toggle navigation"
+                aria-expanded="false"
+            >☰</button>
+
+            <div class="breadcrumb">
+                <span>Workspace</span>
+                <span class="breadcrumb-separator">/</span>
+                <strong id="breadcrumbCurrent">Dashboard</strong>
+            </div>
+
+            <div class="topbar-right">
+
+                <div class="streak-pill">
+                    <span>🔥</span>
+                    <strong id="streakValue">0</strong>
+                    <span class="muted">day streak</span>
+                </div>
+
+                <div class="xp-pill">
+                    <span>✦</span>
+                    <strong id="topXP">0 XP</strong>
+                </div>
+
+                <button class="avatar" id="profileButton" title="Your profile">
+                    CQ
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- ALL VIEWS RENDER INTO THIS AREA -->
+        <div id="viewContainer" class="view-container" tabindex="-1">
+
+            <section class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Preparing your learning adventure...</p>
+            </section>
+
+        </div>
+
+
+        <footer class="app-footer">
+            <span>CODEQUEST</span>
+            <span>Built for curious minds. Powered by practice.</span>
+        </footer>
+
+    </main>
+
+</div>
+
+
+<!-- TOAST NOTIFICATIONS -->
+<div
+    class="toast-container"
+    id="toastContainer"
+    aria-live="polite"
+    aria-atomic="true"
+></div>
+
+
+<!-- CONFETTI AND ACHIEVEMENT OVERLAY -->
+<div
+    class="celebration-overlay"
+    id="celebrationOverlay"
+    aria-live="polite"
+    aria-atomic="true"
+></div>
+
+
+<!-- EDIT PROFILE DIALOG -->
+<dialog class="modal" id="profileDialog">
+
+    <form id="profileForm">
+
+        <div class="modal-header">
+            <div>
+                <div class="eyebrow">YOUR IDENTITY</div>
+                <h2>Player profile</h2>
+            </div>
+
+            <button
+                type="button"
+                class="icon-button"
+                data-action="close-profile"
+                aria-label="Close"
+            >✕</button>
+        </div>
+
+        <label for="playerName">What should we call you?</label>
+
+        <input
+            id="playerName"
+            name="playerName"
+            maxlength="30"
+            placeholder="Your name"
+            autocomplete="nickname"
+            required
+        >
+
+        <div class="profile-summary">
+            <div class="avatar avatar-large">CQ</div>
+
+            <div>
+                <strong id="profileLevel">Level 1 Explorer</strong>
+                <p id="profileXP" class="muted">0 experience points</p>
+            </div>
+        </div>
+
+        <button class="button button-primary button-full" type="submit">
+            Save profile
+        </button>
+
+    </form>
+
+</dialog>
+
+</body>
+</html>
