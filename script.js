@@ -1,4167 +1,2091 @@
 "use strict";
 
 /* =========================================================
-   CODEQUEST — APPLICATION ENGINE
-   ========================================================= */
+   COMPLINGO CONFIGURATION
+   Add your Supabase project credentials here.
+========================================================= */
+
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+
+const supabaseConfigured =
+    SUPABASE_URL.startsWith("https://") &&
+    !SUPABASE_URL.includes("YOUR_SUPABASE") &&
+    SUPABASE_ANON_KEY.length > 20 &&
+    !SUPABASE_ANON_KEY.includes("YOUR_SUPABASE");
+
+const supabaseClient =
+    supabaseConfigured && window.supabase
+        ? window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+        )
+        : null;
+
+
+/* =========================================================
+   DOM HELPERS
+========================================================= */
+
+const $ = selector => document.querySelector(selector);
+
+const $$ = selector => [...document.querySelectorAll(selector)];
+
+const escapeHTML = value =>
+    String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    })[character]);
+
+
+/* =========================================================
+   SCHOOL-SPECIFIC CURRICULUM
+========================================================= */
+
+const units = schoolCurriculum.units;
+const lessons = schoolCurriculum.lessons;
+const challenges = schoolCurriculum.challenges;
+const checkpoints = schoolCurriculum.checkpoints;
+const lessonById = new Map(lessons.map(lesson => [lesson.id, lesson]));
+const assessmentIds = new Set([
+    ...checkpoints.map(checkpoint => checkpoint.id),
+    ...checkpoints.flatMap(checkpoint => checkpoint.taskIds)
+]);
+const assessments = Object.fromEntries(
+    checkpoints.map(checkpoint => [checkpoint.id, checkpoint])
+);
+lessons.forEach(lesson => {
+    challenges[lesson.challengeId].lessonId = lesson.id;
+});
+
+
+/* =========================================================
+   APP STATE
+========================================================= */
+
+const state = {
+    user: null,
+    profile: null,
+
+    editor: null,
+    currentChallenge: "factorial",
+    currentAssessment: null,
+    currentAssessmentTask: null,
+    currentLesson: null,
+    challengeContext: null,
+    lessonAnswerCorrect: false,
+
+    currentView: "dashboard",
+
+    progress: {
+        completedLessons: [],
+        assessmentResults: [],
+        activities: [],
+        lastActiveDate: null,
+        streak: 0
+    },
+
+    challengeResults: {},
+
+    hintVisible: false,
+    saving: false
+};
+
+
+/* =========================================================
+   SAFE LOCAL CACHE
+   Used for guest progress and temporary offline resilience.
+========================================================= */
+
+const CACHE_KEY = "complingo_guest_progress_v1";
+
+function loadGuestProgress() {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
 
-const CodeQuest = (() => {
+        if (!raw) return;
 
-    const STORAGE_KEY = "codequest.student.v1";
+        const data = JSON.parse(raw);
 
-    const $ = (selector, root = document) =>
-        root.querySelector(selector);
-
-    const $$ = (selector, root = document) =>
-        [...root.querySelectorAll(selector)];
-
-    const escapeHTML = value =>
-        String(value).replace(/[&<>"']/g, character => ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;"
-        })[character]);
-
-
-    /* =====================================================
-       STARTER CODE
-       ===================================================== */
-
-    const starterCode = {
-        html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My First Project</title>
-</head>
-<body>
-  <h1>Hello, Programmer!</h1>
-  <p>I am learning to build websites.</p>
-
-  <button id="helloButton">Click me</button>
-
-  <script>
-    document.getElementById("helloButton")
-      .addEventListener("click", function () {
-        alert("Great job! Your JavaScript works.");
-      });
-  <\/script>
-</body>
-</html>`,
-
-        css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 30px;
-  background: #f3f0ff;
-  color: #25233b;
-}
-
-h1 {
-  color: #7255d9;
-}
-
-button {
-  padding: 12px 18px;
-  border: none;
-  border-radius: 9px;
-  background: #7255d9;
-  color: white;
-  cursor: pointer;
-}`,
-
-        js: `console.log("Hello from JavaScript!");
-
-const student = "Programmer";
-
-console.log("Welcome, " + student);`
-    };
-
-
-    /* =====================================================
-       CURRICULUM DATA
-       Replace or extend this array with real practicals.
-       ===================================================== */
-
-    const lessons = [
-
-        {
-            id: "html-foundations",
-            number: "01",
-            title: "Your First Web Page",
-            category: "HTML",
-            icon: "🌐",
-            difficulty: "Beginner",
-            duration: "8 min",
-            xp: 50,
-            description:
-                "Understand HTML documents, headings, paragraphs, and elements.",
-
-            objective:
-                "Create a basic HTML page and identify the purpose of its elements.",
-
-            explanation:
-                "HTML stands for HyperText Markup Language. It describes the structure of a web page. Browsers read HTML elements and use them to display headings, paragraphs, images, buttons, and other content.",
-
-            example: `<h1>My First Page</h1>
-<p>I am learning HTML.</p>
-<button>Click me</button>`,
-
-            callout:
-                "Remember: HTML describes the content and structure of a page. CSS controls its appearance, while JavaScript adds behaviour.",
-
-            steps: [
-                {
-                    heading: "1. The heading element",
-                    text:
-                        "The <h1> element represents the main heading. HTML also has <h2> through <h6> for different heading levels."
-                },
-                {
-                    heading: "2. The paragraph element",
-                    text:
-                        "The <p> element represents a paragraph of text. Browsers normally display paragraphs as separate blocks."
-                },
-                {
-                    heading: "3. Opening and closing tags",
-                    text:
-                        "Many HTML elements have an opening tag, content, and a closing tag. For example, <p>Hello</p>. Some elements, such as <img>, are void elements and do not have closing tags."
-                }
-            ],
-
-            question: {
-                prompt:
-                    "Which HTML element is normally used for the main heading of a page?",
-
-                options: [
-                    "<paragraph>",
-                    "<h1>",
-                    "<heading>",
-                    "<title-text>"
-                ],
-
-                correct: 1,
-
-                explanation:
-                    "Correct! The <h1> element represents the main heading in the page content. The <title> element serves a different purpose: it sets the document's title."
-            },
-
-            starter: {
-                html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>My First Page</title>
-</head>
-<body>
-  <h1>My First Page</h1>
-  <p>I am learning HTML.</p>
-</body>
-</html>`,
-
-                css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 25px;
-  color: #25233b;
-}
-
-h1 {
-  color: #7255d9;
-}`,
-
-                js: `console.log("My first HTML lesson!");`
-            }
-        },
-
-
-        {
-            id: "css-styling",
-            number: "02",
-            title: "Make It Look Amazing",
-            category: "CSS",
-            icon: "🎨",
-            difficulty: "Beginner",
-            duration: "10 min",
-            xp: 60,
-            description:
-                "Use CSS selectors, colours, spacing, and borders.",
-
-            objective:
-                "Style a web page by selecting elements and changing their appearance.",
-
-            explanation:
-                "CSS stands for Cascading Style Sheets. It controls how HTML content looks. A CSS rule contains a selector and a declaration block. Declarations contain property-value pairs.",
-
-            example: `h1 {
-  color: purple;
-  font-size: 32px;
-}
-
-p {
-  line-height: 1.8;
-}`,
-
-            callout:
-                "A CSS declaration needs a property, a colon, a value, and usually a semicolon. Curly braces contain the declarations for a rule.",
-
-            steps: [
-                {
-                    heading: "1. Select an element",
-                    text:
-                        "The selector h1 targets heading elements. The selector .card targets elements whose class includes card. The selector #main targets the element with the ID main."
-                },
-                {
-                    heading: "2. Change a property",
-                    text:
-                        "The color property controls text colour. The background-color property controls the background. Properties such as padding and margin control spacing."
-                },
-                {
-                    heading: "3. Read the rule",
-                    text:
-                        "In h1 { color: purple; }, h1 is the selector, color is the property, and purple is its value."
-                }
-            ],
-
-            question: {
-                prompt:
-                    "Which CSS property changes the colour of text?",
-
-                options: [
-                    "font-background",
-                    "text-style",
-                    "color",
-                    "foreground"
-                ],
-
-                correct: 2,
-
-                explanation:
-                    "Correct! The color property sets text colour. The background-color property controls the background instead."
-            },
-
-            starter: {
-                html: `<main class="card">
-  <h1>My Project</h1>
-  <p>CSS makes websites beautiful.</p>
-  <button>Explore</button>
-</main>`,
-
-                css: `body {
-  font-family: system-ui, sans-serif;
-  background: #f1efff;
-  padding: 35px;
-}
-
-.card {
-  background: white;
-  padding: 25px;
-  border-radius: 15px;
-}
-
-h1 {
-  color: #7255d9;
-}`,
-
-                js: `console.log("Ready to style!");`
-            }
-        },
-
-
-        {
-            id: "javascript-basics",
-            number: "03",
-            title: "Bring Pages to Life",
-            category: "JavaScript",
-            icon: "⚡",
-            difficulty: "Beginner",
-            duration: "12 min",
-            xp: 70,
-            description:
-                "Learn variables, values, expressions, and console output.",
-
-            objective:
-                "Create variables, perform a calculation, and display a result.",
-
-            explanation:
-                "JavaScript is a programming language used to make web pages interactive. It can calculate values, respond to events, update HTML, and communicate with services.",
-
-            example: `const firstNumber = 10;
-const secondNumber = 5;
-
-const total = firstNumber + secondNumber;
-
-console.log(total);`,
-
-            callout:
-                "Use const when a variable binding will not be reassigned. Use let when it needs to be reassigned. Avoid var in new beginner examples unless you are studying older code.",
-
-            steps: [
-                {
-                    heading: "1. Create a variable",
-                    text:
-                        "const firstNumber = 10; creates a binding named firstNumber with the value 10."
-                },
-                {
-                    heading: "2. Calculate a result",
-                    text:
-                        "The + operator adds numbers. When used with strings, + can concatenate text instead."
-                },
-                {
-                    heading: "3. Display the result",
-                    text:
-                        "console.log(total) writes the value to the developer console. In CodeQuest, the playground captures supported console output for learning."
-                }
-            ],
-
-            question: {
-                prompt:
-                    "What will console.log(7 + 3) display?",
-
-                options: [
-                    "73",
-                    "10",
-                    "7 + 3",
-                    "undefined"
-                ],
-
-                correct: 1,
-
-                explanation:
-                    "Correct! Both operands are numbers, so the + operator adds them to produce 10."
-            },
-
-            starter: {
-                html: `<h1>JavaScript Lab</h1>
-<p>Open the console in the playground to see your program's output.</p>`,
-
-                css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 25px;
-  background: #f5f2ff;
-}`,
-
-                js: `const firstNumber = 7;
-const secondNumber = 3;
-
-const total = firstNumber + secondNumber;
-
-console.log("The answer is:", total);`
-            }
-        },
-
-
-        {
-            id: "dom-events",
-            number: "04",
-            title: "Make Buttons Work",
-            category: "JavaScript",
-            icon: "🖱️",
-            difficulty: "Beginner",
-            duration: "12 min",
-            xp: 80,
-            description:
-                "Learn DOM selection, event listeners, and interactive elements.",
-
-            objective:
-                "Make a button respond to a click and update page content.",
-
-            explanation:
-                "The Document Object Model, or DOM, represents the structure of a web page as objects that JavaScript can access and modify.",
-
-            example: `const button = document.querySelector("#myButton");
-
-button.addEventListener("click", function () {
-  document.querySelector("#message").textContent =
-    "You clicked the button!";
-});`,
-
-            callout:
-                "An event listener waits for an event, such as a click. Its callback function runs when that event occurs.",
-
-            steps: [
-                {
-                    heading: "1. Select an element",
-                    text:
-                        "document.querySelector() selects the first element matching a CSS selector. It returns null when no matching element exists."
-                },
-                {
-                    heading: "2. Listen for a click",
-                    text:
-                        "addEventListener('click', callback) registers a function that runs when the element is clicked."
-                },
-                {
-                    heading: "3. Change text safely",
-                    text:
-                        "textContent changes an element's text without interpreting that text as HTML markup."
-                }
-            ],
-
-            question: {
-                prompt:
-                    "Which method registers a function to respond to a click event?",
-
-                options: [
-                    "document.changeClick()",
-                    "element.addEventListener()",
-                    "element.makeButton()",
-                    "console.click()"
-                ],
-
-                correct: 1,
-
-                explanation:
-                    "Correct! addEventListener() registers an event handler for events such as click, input, and submit."
-            },
-
-            starter: {
-                html: `<h1>Interactive Button</h1>
-
-<p id="message">Press the button below.</p>
-
-<button id="myButton">Click me</button>`,
-
-                css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 25px;
-}
-
-button {
-  padding: 10px 15px;
-  cursor: pointer;
-}`,
-
-                js: `const button = document.querySelector("#myButton");
-
-button.addEventListener("click", function () {
-  document.querySelector("#message").textContent =
-    "You clicked the button!";
-});`
-            }
-        },
-
-
-        {
-            id: "conditions",
-            number: "05",
-            title: "Teach Your Code to Decide",
-            category: "JavaScript",
-            icon: "🧠",
-            difficulty: "Beginner",
-            duration: "12 min",
-            xp: 80,
-            description:
-                "Use conditions to make programs respond differently to different values.",
-
-            objective:
-                "Use if, else if, and else to choose between possible outcomes.",
-
-            explanation:
-                "Conditional statements let a program choose which code to run based on a condition. Comparisons such as ===, >, and < produce Boolean results.",
-
-            example: `const marks = 75;
-
-if (marks >= 50) {
-  console.log("Pass");
-} else {
-  console.log("Try again");
-}`,
-
-            callout:
-                "The comparison operator === checks strict equality. It is generally preferred over == because it does not perform the same implicit type conversions.",
-
-            steps: [
-                {
-                    heading: "1. Check a condition",
-                    text:
-                        "if (marks >= 50) checks whether marks is greater than or equal to 50."
-                },
-                {
-                    heading: "2. Choose the matching branch",
-                    text:
-                        "If the condition is true, the first block executes. Otherwise, the else block executes."
-                },
-                {
-                    heading: "3. Test boundary values",
-                    text:
-                        "Try 49, 50, and 51. Boundary tests help confirm that the comparison matches the intended rule."
-                }
-            ],
-
-            question: {
-                prompt:
-                    "If marks is 40, what does this program display? if (marks >= 50) { console.log('Pass'); } else { console.log('Try again'); }",
-
-                options: [
-                    "Pass",
-                    "Try again",
-                    "Both messages",
-                    "Nothing"
-                ],
-
-                correct: 1,
-
-                explanation:
-                    "Correct! 40 is not greater than or equal to 50, so the else branch runs."
-            },
-
-            starter: {
-                html: `<h1>Result Checker</h1>
-<p>Change the marks variable in JavaScript to test different results.</p>`,
-
-                css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 25px;
-}`,
-
-                js: `const marks = 40;
-
-if (marks >= 50) {
-  console.log("Pass");
-} else {
-  console.log("Try again");
-}`
-            }
-        },
-
-
-        {
-            id: "loops",
-            number: "06",
-            title: "Repeat Without Repeating Yourself",
-            category: "JavaScript",
-            icon: "🔁",
-            difficulty: "Beginner",
-            duration: "14 min",
-            xp: 90,
-            description:
-                "Use loops to execute instructions repeatedly.",
-
-            objective:
-                "Write a for loop and predict how many times its body runs.",
-
-            explanation:
-                "Loops repeat code. A for loop is useful when you can express the starting condition, continuation condition, and update step.",
-
-            example: `for (let i = 1; i <= 5; i++) {
-  console.log(i);
-}`,
-
-            callout:
-                "A loop needs a sensible stopping condition. If the condition never becomes false, the loop can continue indefinitely.",
-
-            steps: [
-                {
-                    heading: "1. Initialize",
-                    text:
-                        "let i = 1 creates the counter."
-                },
-                {
-                    heading: "2. Check the condition",
-                    text:
-                        "i <= 5 means the loop continues while i is at most 5."
-                },
-                {
-                    heading: "3. Update the counter",
-                    text:
-                        "i++ increases i by one after each iteration. The body therefore runs for i values 1, 2, 3, 4, and 5."
-                }
-            ],
-
-            question: {
-                prompt:
-                    "How many times does for (let i = 0; i < 4; i++) run its body?",
-
-                options: [
-                    "3 times",
-                    "4 times",
-                    "5 times",
-                    "It never runs"
-                ],
-
-                correct: 1,
-
-                explanation:
-                    "Correct! The values are 0, 1, 2, and 3. When i becomes 4, the condition i < 4 is false."
-            },
-
-            starter: {
-                html: `<h1>Loop Lab</h1>
-<p>Inspect the console output to see each iteration.</p>`,
-
-                css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 25px;
-}`,
-
-                js: `for (let i = 0; i < 4; i++) {
-  console.log("Iteration:", i);
-}`
-            }
-        }
-
-    ];
-
-
-    /* =====================================================
-       CHALLENGE LIBRARY
-       ===================================================== */
-
-    const challenges = [
-
-        {
-            id: "challenge-heading",
-            title: "Fix the Missing Heading",
-            icon: "🐛",
-            difficulty: "Easy",
-            category: "Debugging",
-            xp: 35,
-
-            description:
-                "The page should display a heading, but the HTML element is malformed.",
-
-            question:
-                "Repair the HTML so the heading appears correctly.",
-
-            initial:
-                `<h1>Welcome to CodeQuest</h2>`,
-
-            solution:
-                `<h1>Welcome to CodeQuest</h1>`,
-
-            hint:
-                "The opening and closing heading tags must match.",
-
-            explanation:
-                "The opening tag is h1, but the closing tag is h2. Change the closing tag to </h1>."
-        },
-
-
-        {
-            id: "challenge-css",
-            title: "Repair the CSS Rule",
-            icon: "🎨",
-            difficulty: "Easy",
-            category: "Debugging",
-            xp: 35,
-
-            description:
-                "A heading should be purple, but the CSS declaration contains an error.",
-
-            question:
-                "Fix the CSS so the h1 text becomes purple.",
-
-            initial:
-                `h1 {
-  color purple;
-}`,
-
-            solution:
-                `h1 {
-  color: purple;
-}`,
-
-            hint:
-                "A CSS declaration separates the property and value with a colon.",
-
-            explanation:
-                "CSS declarations use property: value;. The missing colon prevents the intended declaration from being parsed correctly."
-        },
-
-
-        {
-            id: "challenge-js",
-            title: "Repair the Calculation",
-            icon: "⚡",
-            difficulty: "Medium",
-            category: "Debugging",
-            xp: 45,
-
-            description:
-                "The program should add two numbers, but the expression is incomplete.",
-
-            question:
-                "Make the program calculate and print 15.",
-
-            initial:
-                `const a = 10;
-const b = 5;
-
-console.log(a - b);`,
-
-            solution:
-                `const a = 10;
-const b = 5;
-
-console.log(a + b);`,
-
-            hint:
-                "The subtraction operator produces 5. Which operator adds numbers?",
-
-            explanation:
-                "Replace - with +. The result of 10 + 5 is 15."
-        }
-
-    ];
-
-
-    /* =====================================================
-       ASSESSMENT BANK
-       ===================================================== */
-
-    const assessmentQuestions = [
-
-        {
-            id: "a1",
-            type: "mcq",
-            topic: "HTML",
-            marks: 2,
-
-            prompt:
-                "Which element contains the visible content of an ordinary HTML page?",
-
-            options: [
-                "<head>",
-                "<body>",
-                "<meta>",
-                "<title>"
-            ],
-
-            answer: 1,
-
-            explanation:
-                "The body element contains the document's main visible content."
-        },
-
-        {
-            id: "a2",
-            type: "mcq",
-            topic: "CSS",
-            marks: 2,
-
-            prompt:
-                "Which selector targets an element with id=\"main\"?",
-
-            options: [
-                ".main",
-                "main",
-                "#main",
-                "*main"
-            ],
-
-            answer: 2,
-
-            explanation:
-                "The # selector targets an ID. The . selector targets a class."
-        },
-
-        {
-            id: "a3",
-            type: "output",
-            topic: "JavaScript",
-            marks: 2,
-
-            prompt:
-                "What does console.log(4 + 6 * 2) print?",
-
-            options: [
-                "20",
-                "16",
-                "14",
-                "40"
-            ],
-
-            answer: 1,
-
-            explanation:
-                "Multiplication has higher precedence than addition. 6 × 2 = 12, then 4 + 12 = 16."
-        },
-
-        {
-            id: "a4",
-            type: "mcq",
-            topic: "JavaScript",
-            marks: 2,
-
-            prompt:
-                "Which operator checks strict equality?",
-
-            options: [
-                "=",
-                "==",
-                "===",
-                "!="
-            ],
-
-            answer: 2,
-
-            explanation:
-                "=== checks equality without the implicit type conversion associated with ==."
-        },
-
-        {
-            id: "a5",
-            type: "output",
-            topic: "JavaScript",
-            marks: 2,
-
-            prompt:
-                "What is printed by this code?\n\nlet total = 0;\nfor (let i = 1; i <= 3; i++) total += i;\nconsole.log(total);",
-
-            options: [
-                "3",
-                "5",
-                "6",
-                "123"
-            ],
-
-            answer: 2,
-
-            explanation:
-                "The loop adds 1, then 2, then 3. The total is 6."
-        },
-
-        {
-            id: "a6",
-            type: "mcq",
-            topic: "HTML",
-            marks: 2,
-
-            prompt:
-                "Which attribute supplies alternative text for an image?",
-
-            options: [
-                "title",
-                "alt",
-                "src",
-                "label"
-            ],
-
-            answer: 1,
-
-            explanation:
-                "The alt attribute provides a text alternative for an image."
-        },
-
-        {
-            id: "a7",
-            type: "mcq",
-            topic: "CSS",
-            marks: 2,
-
-            prompt:
-                "Which property adds space inside an element's border?",
-
-            options: [
-                "margin",
-                "padding",
-                "outline",
-                "gap"
-            ],
-
-            answer: 1,
-
-            explanation:
-                "Padding is space inside the border. Margin is space outside the border."
-        },
-
-        {
-            id: "a8",
-            type: "output",
-            topic: "JavaScript",
-            marks: 2,
-
-            prompt:
-                "What is printed by console.log(typeof 42)?",
-
-            options: [
-                "\"integer\"",
-                "\"number\"",
-                "\"string\"",
-                "\"object\""
-            ],
-
-            answer: 1,
-
-            explanation:
-                "JavaScript's typeof operator returns the string \"number\" for the numeric value 42."
-        },
-
-        {
-            id: "a9",
-            type: "mcq",
-            topic: "JavaScript",
-            marks: 2,
-
-            prompt:
-                "Which method safely changes the text content of a selected DOM element?",
-
-            options: [
-                "element.textContent",
-                "element.console()",
-                "element.clickText()",
-                "element.printHTML()"
-            ],
-
-            answer: 0,
-
-            explanation:
-                "The textContent property reads or changes an element's text."
-        },
-
-        {
-            id: "a10",
-            type: "mcq",
-            topic: "JavaScript",
-            marks: 2,
-
-            prompt:
-                "What is the main purpose of addEventListener()?",
-
-            options: [
-                "Create CSS files",
-                "Register an event handler",
-                "Declare a constant",
-                "Compile HTML"
-            ],
-
-            answer: 1,
-
-            explanation:
-                "addEventListener() registers a function to respond to a particular event."
-        }
-
-    ];
-
-
-    /* =====================================================
-       INITIAL STUDENT STATE
-       ===================================================== */
-
-    function createDefaultState() {
-        return {
-            name: "Explorer",
-            xp: 0,
-            streak: 0,
-            lastVisit: null,
-
-            completedLessons: [],
-            lessonBest: {},
-
-            completedChallenges: [],
-            challengeBest: {},
-
-            achievements: [],
-            quizBest: null,
-            quizHistory: [],
-
-            skills: {
-                HTML: { correct: 0, total: 0 },
-                CSS: { correct: 0, total: 0 },
-                JavaScript: { correct: 0, total: 0 },
-                Debugging: { correct: 0, total: 0 },
-                Assessment: { correct: 0, total: 0 }
-            },
-
-            dailyDate: null,
-            dailyCompleted: [],
-
-            sessionStarted: false
-        };
-    }
-
-
-    function normalizeState(saved) {
-        const defaults = createDefaultState();
-
-        const state = {
-            ...defaults,
-            ...saved
-        };
-
-        state.skills = {
-            ...defaults.skills,
-            ...(saved.skills || {})
-        };
-
-        for (const key of Object.keys(defaults.skills)) {
-            state.skills[key] = {
-                ...defaults.skills[key],
-                ...(saved.skills?.[key] || {})
-            };
-        }
-
-        state.completedLessons =
-            Array.isArray(saved.completedLessons)
-                ? saved.completedLessons
-                : [];
-
-        state.completedChallenges =
-            Array.isArray(saved.completedChallenges)
-                ? saved.completedChallenges
-                : [];
-
-        state.achievements =
-            Array.isArray(saved.achievements)
-                ? saved.achievements
-                : [];
-
-        state.quizHistory =
-            Array.isArray(saved.quizHistory)
-                ? saved.quizHistory
-                : [];
-
-        state.lessonBest = saved.lessonBest || {};
-        state.challengeBest = saved.challengeBest || {};
-
-        state.dailyCompleted =
-            Array.isArray(saved.dailyCompleted)
-                ? saved.dailyCompleted
-                : [];
-
-        state.xp = Math.max(0, Number(state.xp) || 0);
-        state.streak = Math.max(0, Number(state.streak) || 0);
-
-        return state;
-    }
-
-
-    function loadState() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-
-            if (!raw) {
-                return createDefaultState();
-            }
-
-            return normalizeState(JSON.parse(raw));
-
-        } catch (error) {
-            console.warn("CodeQuest could not load saved progress.", error);
-            return createDefaultState();
-        }
-    }
-
-
-    let state = loadState();
-
-    let currentView = "dashboard";
-    let currentLesson = null;
-    let currentChallenge = null;
-
-    let lessonAnswered = false;
-    let challengeChecked = false;
-
-    let activeAssessment = null;
-    let assessmentIndex = 0;
-    let assessmentAnswers = {};
-
-    let currentEditorTab = "html";
-
-    let editorCode = { ...starterCode };
-
-    let challengeAttempts = 0;
-
-
-    /* =====================================================
-       PERSISTENCE
-       ===================================================== */
-
-    function saveState() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-
-            return true;
-
-        } catch (error) {
-            console.warn("CodeQuest could not save progress.", error);
-
-            return false;
-        }
-    }
-
-
-    /* =====================================================
-       DATE AND PROGRESS UTILITIES
-       ===================================================== */
-
-    function localDateKey(date = new Date()) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    }
-
-
-    function daysBetween(first, second) {
-        const a = new Date(`${first}T12:00:00`);
-        const b = new Date(`${second}T12:00:00`);
-
-        return Math.round((b - a) / 86400000);
-    }
-
-
-    function initializeVisit() {
-        const today = localDateKey();
-
-        if (state.lastVisit !== today) {
-            if (state.lastVisit) {
-                const difference = daysBetween(state.lastVisit, today);
-
-                if (difference === 1) {
-                    state.streak += 1;
-                } else if (difference > 1) {
-                    state.streak = 1;
-                }
-            } else {
-                state.streak = 1;
-            }
-
-            state.lastVisit = today;
-        }
-
-        if (state.dailyDate !== today) {
-            state.dailyDate = today;
-            state.dailyCompleted = [];
-        }
-
-        saveState();
-    }
-
-
-    function completedLessonCount() {
-        return lessons.filter(lesson =>
-            state.completedLessons.includes(lesson.id)
-        ).length;
-    }
-
-
-    function completedChallengeCount() {
-        return challenges.filter(challenge =>
-            state.completedChallenges.includes(challenge.id)
-        ).length;
-    }
-
-
-    function levelForXP(xp = state.xp) {
-        return Math.floor(Math.max(0, xp) / 200) + 1;
-    }
-
-
-    function levelProgress() {
-        return state.xp % 200;
-    }
-
-
-    function mastery(topic) {
-        const skill = state.skills[topic];
-
-        if (!skill || skill.total === 0) {
-            return 0;
-        }
-
-        return Math.round((skill.correct / skill.total) * 100);
-    }
-
-
-    function trackAnswer(topic, correct) {
-        if (!state.skills[topic]) {
-            state.skills[topic] = { correct: 0, total: 0 };
-        }
-
-        state.skills[topic].total += 1;
-
-        if (correct) {
-            state.skills[topic].correct += 1;
-        }
-
-        saveState();
-    }
-
-
-    function dailyProgress() {
-        return Math.min(100, state.dailyCompleted.length * 50);
-    }
-
-
-    function completeDailyTask(taskId) {
-        if (!state.dailyCompleted.includes(taskId)) {
-            state.dailyCompleted.push(taskId);
-            saveState();
-        }
-    }
-
-
-    /* =====================================================
-       NOTIFICATIONS
-       ===================================================== */
-
-    function toast(message, type = "success") {
-        const container = $("#toastContainer");
-
-        const item = document.createElement("div");
-
-        item.className = `toast ${type}`;
-        item.textContent = message;
-
-        container.appendChild(item);
-
-        window.setTimeout(() => {
-            item.remove();
-        }, 3600);
-    }
-
-
-    function celebrate(title, message, icon = "🏆") {
-        const overlay = $("#celebrationOverlay");
-
-        overlay.replaceChildren();
-
-        const banner = document.createElement("div");
-
-        banner.className = "celebration-banner";
-
-        const symbol = document.createElement("div");
-        symbol.className = "celebration-icon";
-        symbol.textContent = icon;
-
-        const heading = document.createElement("h2");
-        heading.textContent = title;
-
-        const description = document.createElement("p");
-        description.textContent = message;
-
-        banner.append(symbol, heading, description);
-        overlay.appendChild(banner);
-
-        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            const colors = [
-                "#a78bfa",
-                "#65d9ee",
-                "#65dfa6",
-                "#f5cb70",
-                "#f38ab9"
+        if (Array.isArray(data.completedLessons)) {
+            const lessonIds = new Set(lessons.map(lesson => lesson.id));
+            state.progress.completedLessons = [
+                ...new Set(data.completedLessons.filter(id => lessonIds.has(id)))
             ];
+        }
 
-            for (let i = 0; i < 38; i++) {
-                const piece = document.createElement("span");
+        if (Array.isArray(data.assessmentResults)) {
+            const validAssessmentIds = new Set([
+                ...checkpoints.map(checkpoint => checkpoint.id),
+                ...checkpoints.flatMap(checkpoint => checkpoint.taskIds)
+            ]);
+            state.progress.assessmentResults = data.assessmentResults
+                .filter(result => validAssessmentIds.has(result.id));
+        }
 
-                piece.className = "confetti-piece";
-                piece.style.left = `${Math.random() * 100}%`;
-                piece.style.background =
-                    colors[Math.floor(Math.random() * colors.length)];
+        if (Array.isArray(data.activities)) {
+            state.progress.activities = data.activities;
+        }
 
-                piece.style.animationDelay = `${Math.random() * 0.7}s`;
+        if (data.lastActiveDate) {
+            state.progress.lastActiveDate = data.lastActiveDate;
+        }
 
-                overlay.appendChild(piece);
+        if (Number.isFinite(data.streak)) {
+            state.progress.streak = data.streak;
+        }
+
+    } catch (error) {
+        console.warn("Could not load cached progress.", error);
+    }
+}
+
+function saveGuestProgress() {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state.progress));
+    } catch (error) {
+        console.warn("Could not save guest progress.", error);
+    }
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+const viewNames = {
+    dashboard: "Dashboard",
+    learn: "Learning path",
+    practice: "Practice lab",
+    assessments: "Assessments",
+    progress: "My progress"
+};
+
+function navigate(view) {
+    if (!viewNames[view]) return;
+
+    state.currentView = view;
+
+    $$(".page").forEach(page => page.classList.remove("active"));
+
+    const page = $(`#${view}Page`);
+
+    if (page) {
+        page.classList.add("active");
+    }
+
+    $$(".nav-item").forEach(button => {
+        button.classList.toggle(
+            "active",
+            button.dataset.view === view
+        );
+    });
+
+    $("#pageBreadcrumb").textContent = viewNames[view];
+
+    $("#sidebar").classList.remove("open");
+
+    if (view === "practice") {
+        setTimeout(() => {
+            if (state.editor) state.editor.refresh();
+        }, 40);
+    }
+
+    if (view === "progress") {
+        renderProgress();
+    }
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+$$("[data-view]").forEach(button => {
+    button.addEventListener("click", () => {
+        navigate(button.dataset.view);
+    });
+});
+
+$("#mobileMenuButton").addEventListener("click", () => {
+    $("#sidebar").classList.toggle("open");
+});
+
+document.addEventListener("click", event => {
+    if (
+        window.innerWidth <= 900 &&
+        $("#sidebar").classList.contains("open") &&
+        !$("#sidebar").contains(event.target) &&
+        !$("#mobileMenuButton").contains(event.target)
+    ) {
+        $("#sidebar").classList.remove("open");
+    }
+});
+
+
+/* =========================================================
+   TOAST NOTIFICATIONS
+========================================================= */
+
+let toastTimer;
+
+function toast(message) {
+    const element = $("#toast");
+
+    element.textContent = message;
+    element.classList.add("visible");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(() => {
+        element.classList.remove("visible");
+    }, 3000);
+}
+
+
+/* =========================================================
+   AUTHENTICATION UI
+========================================================= */
+
+function openAuthModal() {
+    $("#authError").hidden = true;
+    $("#authModal").hidden = false;
+}
+
+function closeAuthModal() {
+    $("#authModal").hidden = true;
+}
+
+$("#closeAuthButton").addEventListener("click", closeAuthModal);
+
+$("#authModal").addEventListener("click", event => {
+    if (event.target === $("#authModal")) {
+        closeAuthModal();
+    }
+});
+
+$("#topAvatar").addEventListener("click", () => {
+    if (state.user) {
+        navigate("progress");
+    } else {
+        openAuthModal();
+    }
+});
+
+$("#googleSignInButton").addEventListener("click", async () => {
+    if (!supabaseClient) {
+        $("#authError").textContent =
+            "Supabase is not configured yet. Add your project URL and publishable key in script.js.";
+
+        $("#authError").hidden = false;
+        return;
+    }
+
+    const button = $("#googleSignInButton");
+
+    button.disabled = true;
+    button.textContent = "Connecting to Google…";
+
+    try {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: "google",
+
+            options: {
+                redirectTo: window.location.origin +
+                    window.location.pathname
             }
-        }
+        });
 
-        window.setTimeout(() => {
-            overlay.replaceChildren();
-        }, 3000);
+        if (error) throw error;
+
+    } catch (error) {
+        $("#authError").textContent = error.message;
+        $("#authError").hidden = false;
+
+        button.disabled = false;
+        button.innerHTML =
+            '<span class="google-logo">G</span> Continue with Google';
+    }
+});
+
+
+async function signOut() {
+    if (!supabaseClient) return;
+
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+        toast("Could not sign out. Please try again.");
+        return;
     }
 
+    state.user = null;
+    state.profile = null;
 
-    /* =====================================================
-       XP AND ACHIEVEMENTS
-       ===================================================== */
+    renderUser();
+    toast("You have signed out.");
+}
 
-    const achievementDefinitions = [
-
-        {
-            id: "first-step",
-            title: "First Steps",
-            icon: "🌱",
-            description: "Complete your first lesson.",
-            condition: () => state.completedLessons.length >= 1
-        },
-
-        {
-            id: "html-explorer",
-            title: "HTML Explorer",
-            icon: "🌐",
-            description: "Complete the HTML foundations lesson.",
-            condition: () =>
-                state.completedLessons.includes("html-foundations")
-        },
-
-        {
-            id: "style-artist",
-            title: "Style Artist",
-            icon: "🎨",
-            description: "Complete the CSS lesson.",
-            condition: () =>
-                state.completedLessons.includes("css-styling")
-        },
-
-        {
-            id: "javascript-initiate",
-            title: "JavaScript Initiate",
-            icon: "⚡",
-            description: "Complete the JavaScript fundamentals lesson.",
-            condition: () =>
-                state.completedLessons.includes("javascript-basics")
-        },
-
-        {
-            id: "bug-hunter",
-            title: "Bug Hunter",
-            icon: "🐛",
-            description: "Successfully fix a coding challenge.",
-            condition: () => state.completedChallenges.length >= 1
-        },
-
-        {
-            id: "three-lessons",
-            title: "Knowledge Builder",
-            icon: "📚",
-            description: "Complete three different lessons.",
-            condition: () => state.completedLessons.length >= 3
-        },
-
-        {
-            id: "assessment-ready",
-            title: "Assessment Ready",
-            icon: "📝",
-            description: "Finish a complete assessment.",
-            condition: () => state.quizHistory.length >= 1
-        },
-
-        {
-            id: "perfect-quiz",
-            title: "Perfect Run",
-            icon: "💎",
-            description: "Earn full marks on an assessment.",
-            condition: () =>
-                state.quizBest !== null &&
-                state.quizBest.percentage === 100
-        },
-
-        {
-            id: "xp-500",
-            title: "Rising Star",
-            icon: "🚀",
-            description: "Earn 500 XP.",
-            condition: () => state.xp >= 500
-        }
-
-    ];
+$("#signOutButton").addEventListener("click", signOut);
 
 
-    function awardXP(amount, reason) {
-        const previousLevel = levelForXP();
+function renderUser() {
+    const user = state.user;
 
-        state.xp += amount;
+    const name = user?.user_metadata?.full_name ||
+                 user?.user_metadata?.name ||
+                 user?.email?.split("@")[0] ||
+                 "Guest learner";
 
-        saveState();
+    const email = user?.email || "Sign in to sync progress";
 
-        updateTopbar();
+    $("#sidebarName").textContent = name;
+    $("#sidebarEmail").textContent = email;
 
-        const newLevel = levelForXP();
+    $("#sidebarAvatar").textContent = name.charAt(0).toUpperCase();
+    $("#topAvatar").textContent = name.charAt(0).toUpperCase();
 
-        toast(`+${amount} XP · ${reason}`);
+    $("#welcomeName").textContent =
+        user ? `, ${name.split(" ")[0]}` : ", coder";
 
-        if (newLevel > previousLevel) {
-            celebrate(
-                `Level ${newLevel}!`,
-                "Your programming journey keeps growing.",
-                "🚀"
-            );
-        }
+    $("#signOutButton").hidden = !user;
+}
 
-        checkAchievements();
+
+/* =========================================================
+   SUPABASE AUTH SESSION
+========================================================= */
+
+async function initialiseAuth() {
+    if (!supabaseClient) {
+        renderUser();
+        return;
     }
 
+    try {
+        const {
+            data: { session },
+            error
+        } = await supabaseClient.auth.getSession();
 
-    function checkAchievements() {
-        let changed = false;
+        if (error) throw error;
 
-        for (const definition of achievementDefinitions) {
-            if (
-                !state.achievements.includes(definition.id) &&
-                definition.condition()
-            ) {
-                state.achievements.push(definition.id);
+        if (session?.user) {
+            await onAuthenticated(session.user);
+        }
 
-                changed = true;
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            setTimeout(async () => {
+                if (session?.user) {
+                    await onAuthenticated(session.user);
+                } else if (event === "SIGNED_OUT") {
+                    state.user = null;
+                    state.profile = null;
 
-                celebrate(
-                    "Achievement unlocked!",
-                    definition.title,
-                    definition.icon
+                    renderUser();
+                }
+            }, 0);
+        });
+
+    } catch (error) {
+        console.error("Authentication initialisation failed.", error);
+        toast("Unable to initialise authentication.");
+    }
+}
+
+
+async function onAuthenticated(user) {
+    state.user = user;
+
+    renderUser();
+
+    closeAuthModal();
+
+    await loadCloudProgress();
+
+    renderDashboard();
+
+    toast("Welcome back to Complingo!");
+}
+
+
+/* =========================================================
+   DATABASE: PROFILE + PROGRESS
+========================================================= */
+
+async function loadCloudProgress() {
+    if (!supabaseClient || !state.user) return;
+
+    try {
+        const { data: profile, error: profileError } =
+            await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq("id", state.user.id)
+                .maybeSingle();
+
+        if (profileError) throw profileError;
+
+        state.profile = profile;
+
+        if (!profile) {
+            const name =
+                state.user.user_metadata?.full_name ||
+                state.user.user_metadata?.name ||
+                state.user.email?.split("@")[0] ||
+                "Learner";
+
+            const { data: insertedProfile, error: insertError } =
+                await supabaseClient
+                    .from("profiles")
+                    .insert({
+                        id: state.user.id,
+                        display_name: name
+                    })
+                    .select()
+                    .single();
+
+            if (insertError) {
+                console.error(
+                    "Profile creation failed.",
+                    insertError
                 );
+            } else {
+                state.profile = insertedProfile;
             }
         }
 
-        if (changed) {
-            saveState();
+        const { data: records, error: progressError } =
+            await supabaseClient
+                .from("student_progress")
+                .select("lesson_id, completed, updated_at")
+                .eq("user_id", state.user.id);
+
+        if (progressError) throw progressError;
+
+        if (Array.isArray(records)) {
+            const cloudCompleted = records
+                .filter(record => record.completed)
+                .map(record => record.lesson_id);
+            const lessonIds = new Set(lessons.map(lesson => lesson.id));
+
+            state.progress.completedLessons = [
+                ...new Set([
+                    ...state.progress.completedLessons,
+                    ...cloudCompleted
+                ])
+            ].filter(id => lessonIds.has(id));
         }
+
+        const { data: results, error: resultsError } =
+            await supabaseClient
+                .from("assessment_results")
+                .select("assessment_id, score, max_score, created_at")
+                .eq("user_id", state.user.id)
+                .order("created_at", { ascending: false })
+                .limit(100);
+
+        if (resultsError) throw resultsError;
+
+        if (Array.isArray(results)) {
+            const cloudResults = results
+                .map(result => ({
+                    id: result.assessment_id,
+                    score: result.score,
+                    maxScore: result.max_score,
+                    date: result.created_at
+                }))
+                .filter(result => assessmentIds.has(result.id));
+
+            const latestResults = new Map();
+            [...cloudResults, ...state.progress.assessmentResults]
+                .sort((left, right) =>
+                    new Date(right.date) - new Date(left.date)
+                )
+                .forEach(result => {
+                    if (!latestResults.has(result.id)) {
+                        latestResults.set(result.id, result);
+                    }
+                });
+
+            state.progress.assessmentResults = [...latestResults.values()];
+        }
+
+        saveGuestProgress();
+        renderDashboard();
+
+    } catch (error) {
+        console.error("Could not load cloud progress.", error);
+
+        toast("Cloud sync failed. Local progress is still available.");
     }
+}
 
 
-    /* =====================================================
-       TOPBAR
-       ===================================================== */
+async function saveLessonCompletion(lessonId) {
+    if (!lessonById.has(lessonId)) return;
 
-    const viewNames = {
-        dashboard: "Dashboard",
-        learn: "Learning path",
-        lesson: "Lesson",
-        playground: "Code playground",
-        challenges: "Challenges",
-        challenge: "Challenge",
-        assessment: "PBA assessment",
-        achievements: "Achievements"
+    if (state.progress.completedLessons.includes(lessonId)) return;
+
+    state.progress.completedLessons.push(lessonId);
+
+    addActivity(
+        "Completed lesson",
+        lessons.find(lesson => lesson.id === lessonId)?.title ||
+            lessonId
+    );
+
+    saveGuestProgress();
+    renderDashboard();
+
+    if (!supabaseClient || !state.user) return;
+
+    const { error } = await supabaseClient
+        .from("student_progress")
+        .upsert({
+            user_id: state.user.id,
+            lesson_id: lessonId,
+            completed: true,
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: "user_id,lesson_id"
+        });
+
+    if (error) {
+        console.error("Progress sync failed.", error);
+        toast("Progress saved locally; cloud sync failed.");
+    }
+}
+
+
+async function saveAssessmentResult(assessmentId, score, maxScore) {
+    if (!assessmentIds.has(assessmentId)) return;
+
+    const result = {
+        id: assessmentId,
+        score,
+        maxScore,
+        date: new Date().toISOString()
     };
 
+    state.progress.assessmentResults = [
+        result,
+        ...state.progress.assessmentResults.filter(
+            item => item.id !== assessmentId
+        )
+    ];
 
-    function updateTopbar() {
-        $("#topXP").textContent = `${state.xp} XP`;
-        $("#streakValue").textContent = state.streak;
+    addActivity(
+        "Completed assessment",
+        `${assessmentId}: ${score}/${maxScore}`
+    );
 
-        $("#profileButton").textContent =
-            state.name.trim().slice(0, 2).toUpperCase() || "CQ";
+    saveGuestProgress();
+    renderDashboard();
 
-        $("#breadcrumbCurrent").textContent =
-            viewNames[currentView] || "Dashboard";
-    }
+    if (!supabaseClient || !state.user) return;
 
-
-    function updateNavigation() {
-        $$(".nav-item").forEach(button => {
-            button.classList.toggle(
-                "active",
-                button.dataset.view === currentView ||
-                (currentView === "lesson" && button.dataset.view === "learn") ||
-                (currentView === "challenge" && button.dataset.view === "challenges")
-            );
+    const { error } = await supabaseClient
+        .from("assessment_results")
+        .insert({
+            user_id: state.user.id,
+            assessment_id: assessmentId,
+            score,
+            max_score: maxScore
         });
+
+    if (error) {
+        console.error("Assessment result sync failed.", error);
+        toast("Result saved locally; cloud sync failed.");
     }
+}
 
 
-    /* =====================================================
-       VIEW ROUTER
-       ===================================================== */
+/* =========================================================
+   ACTIVITY + STREAK
+========================================================= */
 
-    function navigate(view) {
-        currentView = view;
+function addActivity(type, description) {
+    state.progress.activities.unshift({
+        type,
+        description,
+        date: new Date().toISOString()
+    });
 
-        $("#sidebar").classList.remove("open");
+    state.progress.activities =
+        state.progress.activities.slice(0, 50);
 
-        $("#menuToggle").setAttribute("aria-expanded", "false");
+    updateStreak();
+}
 
-        updateTopbar();
-        updateNavigation();
+function updateStreak() {
+    const today = new Date().toISOString().slice(0, 10);
+    const last = state.progress.lastActiveDate;
 
-        switch (view) {
-            case "dashboard":
-                renderDashboard();
-                break;
+    if (last === today) return;
 
-            case "learn":
-                renderLearningPath();
-                break;
+    if (!last) {
+        state.progress.streak = 1;
+    } else {
+        const lastDate = new Date(`${last}T00:00:00Z`);
+        const todayDate = new Date(`${today}T00:00:00Z`);
 
-            case "lesson":
-                renderLesson();
-                break;
-
-            case "playground":
-                renderPlayground();
-                break;
-
-            case "challenges":
-                renderChallenges();
-                break;
-
-            case "challenge":
-                renderChallenge();
-                break;
-
-            case "assessment":
-                renderAssessment();
-                break;
-
-            case "achievements":
-                renderAchievements();
-                break;
-
-            default:
-                currentView = "dashboard";
-                renderDashboard();
-        }
-
-        updateTopbar();
-
-        $("#viewContainer").scrollIntoView({
-            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                ? "auto"
-                : "smooth",
-            block: "start"
-        });
-    }
-
-
-    /* =====================================================
-       DASHBOARD
-       ===================================================== */
-
-    function renderDashboard() {
-        const completed = completedLessonCount();
-
-        const progress = Math.round(
-            (completed / lessons.length) * 100
+        const difference = Math.round(
+            (todayDate - lastDate) / 86400000
         );
 
-        const nextLesson =
-            lessons.find(lesson =>
-                !state.completedLessons.includes(lesson.id)
-            ) || lessons[lessons.length - 1];
+        if (difference === 1) {
+            state.progress.streak += 1;
+        } else if (difference > 1) {
+            state.progress.streak = 1;
+        }
+    }
 
-        const skillTopics = ["HTML", "CSS", "JavaScript", "Debugging"];
+    state.progress.lastActiveDate = today;
+}
 
-        $("#viewContainer").innerHTML = `
 
-            <section class="welcome-row">
+/* =========================================================
+   DASHBOARD + PROGRESS
+========================================================= */
 
-                <div>
-                    <div class="eyebrow">YOUR PROGRAMMING ADVENTURE</div>
+function calculateProgress() {
+    const total = lessons.length;
 
-                    <h1 class="page-heading">
-                        Welcome back, ${escapeHTML(state.name)} 👋
-                    </h1>
+    const completed = lessons.filter(lesson =>
+        state.progress.completedLessons.includes(lesson.id)
+    ).length;
 
-                    <p class="page-description">
-                        Every great developer started somewhere.
-                        Today is another chance to build something brilliant.
-                    </p>
-                </div>
+    return total
+        ? Math.round((completed / total) * 100)
+        : 0;
+}
 
-                <button class="button button-ghost" data-action="open-profile">
-                    ✎ Edit profile
-                </button>
+function calculateCheckpointProgress() {
+    const taskIds = checkpoints.flatMap(checkpoint => checkpoint.taskIds);
+    const passed = taskIds.filter(hasPassedAssessmentTask).length;
 
-            </section>
+    return taskIds.length
+        ? Math.round((passed / taskIds.length) * 100)
+        : null;
+}
 
 
-            <section class="hero-banner">
+function renderDashboard() {
+    const completed = lessons.filter(lesson =>
+        state.progress.completedLessons.includes(lesson.id)
+    ).length;
 
-                <div class="hero-content">
+    const progress = calculateProgress();
 
-                    <div class="eyebrow">YOUR NEXT QUEST AWAITS</div>
+    const checkpointProgress = calculateCheckpointProgress();
 
-                    <h1>
-                        Learn to code.<br>
-                        <span>One quest at a time.</span>
-                    </h1>
+    $("#completedCount").textContent = completed;
 
-                    <p>
-                        Master HTML, CSS and JavaScript through interactive
-                        lessons, real code, debugging and practical challenges.
-                    </p>
+    $("#checkpointProgressValue").textContent =
+        checkpointProgress === null ? "—" : `${checkpointProgress}%`;
 
-                    <div class="hero-actions">
+    $("#streakValue").textContent = state.progress.streak;
 
-                        <button
-                            class="button button-primary"
-                            data-action="open-next-lesson"
-                        >
-                            ${completed === lessons.length
-                                ? "Review lessons →"
-                                : "Continue learning →"}
-                        </button>
+    $("#dashboardStreak").textContent = state.progress.streak;
 
-                        <button
-                            class="button button-ghost"
-                            data-view="playground"
-                        >
-                            &lt;/&gt; Open playground
-                        </button>
+    $("#dashboardProgress").textContent = `${progress}%`;
 
-                    </div>
+    $("#sidebarProgress").style.width = `${progress}%`;
 
-                </div>
+    $("#sidebarProgressText").textContent =
+        `${progress}% complete`;
 
-                <div class="hero-art" aria-hidden="true">
-                    <div class="orbit"></div>
-                    <div class="hero-code-symbol">&lt;/&gt;</div>
-                </div>
+    $("#progressPercentLarge").textContent = `${progress}%`;
 
-            </section>
+    $("#largeProgressBar").style.width = `${progress}%`;
 
+    $("#checkpointProgressLarge").textContent =
+        checkpointProgress === null ? "—" : `${checkpointProgress}%`;
 
-            <section class="stats-grid">
+    $("#welcomeName").textContent = state.user
+        ? `, ${(state.user.user_metadata?.full_name ||
+            state.user.user_metadata?.name ||
+            state.user.email?.split("@")[0] ||
+            "coder").split(" ")[0]}`
+        : ", coder";
 
-                <article class="stat-card">
-                    <div class="stat-top">
-                        <span class="stat-icon">✦</span>
-                        <span class="badge badge-accent">
-                            LEVEL ${levelForXP()}
-                        </span>
-                    </div>
+    renderLessons();
+    renderAssessments();
+    renderActivities();
+}
 
-                    <div class="stat-number">${state.xp}</div>
-                    <div class="stat-label">Total experience points</div>
 
-                    <div class="progress-track" style="margin-top:13px">
-                        <div
-                            class="progress-fill"
-                            style="width:${levelProgress() / 2}%"
-                        ></div>
-                    </div>
+function renderProgress() {
+    renderDashboard();
+}
 
-                    <div class="stat-footnote">
-                        ${200 - levelProgress()} XP until next level
-                    </div>
-                </article>
 
+function renderActivities() {
+    const container = $("#activityList");
 
-                <article class="stat-card">
-                    <div class="stat-top">
-                        <span class="stat-icon">📚</span>
-                        <span class="badge">${progress}%</span>
-                    </div>
+    const activities = state.progress.activities;
 
-                    <div class="stat-number">${completed}/${lessons.length}</div>
-                    <div class="stat-label">Lessons completed</div>
-
-                    <div class="progress-track" style="margin-top:13px">
-                        <div
-                            class="progress-fill"
-                            style="width:${progress}%"
-                        ></div>
-                    </div>
-
-                    <div class="stat-footnote">Your learning journey</div>
-                </article>
-
-
-                <article class="stat-card">
-                    <div class="stat-top">
-                        <span class="stat-icon">🔥</span>
-                        <span class="badge badge-yellow">Consistency</span>
-                    </div>
-
-                    <div class="stat-number">${state.streak}</div>
-                    <div class="stat-label">Day learning streak</div>
-
-                    <div class="stat-footnote">
-                        Come back tomorrow to keep learning
-                    </div>
-                </article>
-
-
-                <article class="stat-card">
-                    <div class="stat-top">
-                        <span class="stat-icon">🏆</span>
-                        <span class="badge">
-                            ${achievementDefinitions.length} available
-                        </span>
-                    </div>
-
-                    <div class="stat-number">${state.achievements.length}</div>
-                    <div class="stat-label">Achievements unlocked</div>
-
-                    <div class="stat-footnote">
-                        ${completedChallengeCount()} challenges completed
-                    </div>
-                </article>
-
-            </section>
-
-
-            <section class="section dashboard-grid">
-
-                <div>
-
-                    <div class="section-heading">
-                        <div>
-                            <h2>Your learning path</h2>
-                            <p>Build your skills step by step.</p>
-                        </div>
-
-                        <button class="button button-small button-ghost"
-                            data-view="learn">
-                            View all →
-                        </button>
-                    </div>
-
-                    <div class="card">
-                        <div class="lesson-list">
-
-                            ${lessons.slice(0, 4).map((lesson, index) => {
-
-                                const done =
-                                    state.completedLessons.includes(lesson.id);
-
-                                return `
-
-                                    <button
-                                        class="lesson-list-item"
-                                        data-action="open-lesson"
-                                        data-id="${lesson.id}"
-                                        style="width:100%;text-align:left;cursor:pointer"
-                                    >
-
-                                        <div class="lesson-number">
-                                            ${done ? "✓" : lesson.icon}
-                                        </div>
-
-                                        <div class="lesson-item-content">
-                                            <strong>${escapeHTML(lesson.title)}</strong>
-
-                                            <span>
-                                                ${escapeHTML(lesson.category)}
-                                                · ${lesson.duration}
-                                                · ${lesson.xp} XP
-                                            </span>
-                                        </div>
-
-                                        <span class="lesson-item-action">
-                                            ${done ? "✓" : "→"}
-                                        </span>
-
-                                    </button>
-
-                                `;
-                            }).join("")}
-
-                        </div>
-                    </div>
-
-                </div>
-
-
-                <div>
-
-                    <div class="section-heading">
-                        <div>
-                            <h2>Today's quest</h2>
-                            <p>Small steps, real progress.</p>
-                        </div>
-                    </div>
-
-                    <div class="card daily-quest">
-
-                        <div class="quest-icon-large">🎯</div>
-
-                        <h3 class="card-title">Earn your daily XP</h3>
-
-                        <p class="card-description">
-                            Complete a lesson and solve a challenge to
-                            finish today's learning quest.
-                        </p>
-
-                        <div class="quest-progress-label">
-                            <span>Daily progress</span>
-                            <strong>
-                                ${state.dailyCompleted.length}/2
-                            </strong>
-                        </div>
-
-                        <div class="progress-track">
-                            <div
-                                class="progress-fill"
-                                style="width:${dailyProgress()}%"
-                            ></div>
-                        </div>
-
-                        <div class="divider"></div>
-
-                        <button
-                            class="button button-primary button-full"
-                            data-action="open-next-lesson"
-                        >
-                            Start learning →
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <section class="section">
-
-                <div class="section-heading">
-                    <div>
-                        <h2>Your skill map</h2>
-                        <p>Based on answers recorded during your practice.</p>
-                    </div>
-                </div>
-
-                <div class="card">
-
-                    <div class="skill-list">
-
-                        ${skillTopics.map(topic => {
-
-                            const value = mastery(topic);
-
-                            return `
-
-                                <div class="skill-row">
-
-                                    <div class="skill-row-header">
-                                        <span>${topic}</span>
-
-                                        <span>
-                                            ${state.skills[topic].total
-                                                ? `${value}%`
-                                                : "Not assessed yet"}
-                                        </span>
-                                    </div>
-
-                                    <div class="progress-track">
-                                        <div
-                                            class="progress-fill"
-                                            style="width:${value}%"
-                                        ></div>
-                                    </div>
-
-                                </div>
-
-                            `;
-                        }).join("")}
-
-                    </div>
-
-                    <p class="stat-footnote">
-                        Skill percentages use recorded questions only.
-                        An unassessed topic is not automatically treated
-                        as mastered or failed.
-                    </p>
-
-                </div>
-
-            </section>
-
+    if (!activities.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span>⌘</span>
+                <h3>Your journey starts here</h3>
+                <p>Complete your first exercise to see your activity.</p>
+            </div>
         `;
+
+        return;
     }
 
+    container.innerHTML = activities.map(activity => `
+        <div class="activity-row">
+            <div class="activity-check">✓</div>
 
-    /* =====================================================
-       LEARNING PATH
-       ===================================================== */
+            <div>
+                <strong>${escapeHTML(activity.type)}</strong>
+                <p>${escapeHTML(activity.description)}</p>
+            </div>
 
-    function renderLearningPath() {
-        const completed = completedLessonCount();
-
-        $("#viewContainer").innerHTML = `
-
-            <section class="path-header">
-
-                <div class="eyebrow">YOUR CURRICULUM</div>
-
-                <h1 class="page-heading">Learning path</h1>
-
-                <p class="page-description">
-                    Progress from your first HTML element to interactive
-                    JavaScript programs. Each lesson introduces a concept,
-                    explains the code, and gives you a chance to test yourself.
-                </p>
-
-                <div class="path-summary">
-
-                    <div class="stat-icon">🗺️</div>
-
-                    <div>
-                        <strong>
-                            ${completed} of ${lessons.length} lessons completed
-                        </strong>
-
-                        <p>
-                            ${Math.round(completed / lessons.length * 100)}%
-                            of the current curriculum
-                        </p>
-                    </div>
-
-                    <div style="width:100px">
-                        <div class="progress-track">
-                            <div
-                                class="progress-fill"
-                                style="width:${completed / lessons.length * 100}%"
-                            ></div>
-                        </div>
-                    </div>
-
-                </div>
-
-            </section>
+            <span>
+                ${escapeHTML(new Date(activity.date).toLocaleDateString())}
+            </span>
+        </div>
+    `).join("");
+}
 
 
-            <section class="path-world">
+/* =========================================================
+   LEARNING PATH
+========================================================= */
 
-                ${lessons.map((lesson, index) => {
+function renderLessons() {
+    const container = $("#lessonList");
 
-                    const done =
-                        state.completedLessons.includes(lesson.id);
-
-                    const previousDone =
-                        index === 0 ||
-                        state.completedLessons.includes(lessons[index - 1].id);
-
-                    const locked = !done && !previousDone;
-
-                    const nodeClass = done
-                        ? "completed"
-                        : locked
-                            ? "locked"
-                            : "current";
-
-                    return `
-
-                        <article class="path-node ${nodeClass}">
-
-                            <div class="path-node-marker">
-                                ${done ? "✓" : locked ? "🔒" : lesson.icon}
-                            </div>
-
-                            <div class="path-node-card">
-
-                                <div class="path-node-title">
-
-                                    <div>
-                                        <div class="eyebrow">
-                                            LEVEL ${lesson.number}
-                                        </div>
-
-                                        <h3>${escapeHTML(lesson.title)}</h3>
-                                    </div>
-
-                                    <span class="badge ${
-                                        done
-                                            ? "badge-green"
-                                            : locked
-                                                ? ""
-                                                : "badge-accent"
-                                    }">
-
-                                        ${done
-                                            ? "COMPLETED"
-                                            : locked
-                                                ? "LOCKED"
-                                                : "AVAILABLE"}
-
-                                    </span>
-
-                                </div>
-
-                                <p>${escapeHTML(lesson.description)}</p>
-
-                                <div class="path-node-meta">
-
-                                    <span class="badge">
-                                        ${escapeHTML(lesson.category)}
-                                    </span>
-
-                                    <span class="badge">
-                                        ⏱ ${lesson.duration}
-                                    </span>
-
-                                    <span class="badge badge-accent">
-                                        ✦ ${lesson.xp} XP
-                                    </span>
-
-                                    <button
-                                        class="button button-small ${
-                                            locked
-                                                ? "button-ghost"
-                                                : "button-primary"
-                                        }"
-                                        data-action="open-lesson"
-                                        data-id="${lesson.id}"
-                                        ${locked ? "disabled" : ""}
-                                    >
-                                        ${done ? "Review lesson" : "Start lesson →"}
-                                    </button>
-
-                                </div>
-
-                            </div>
-
-                        </article>
-
-                    `;
-                }).join("")}
-
-            </section>
-
-        `;
-    }
-
-
-    /* =====================================================
-       LESSON ENGINE
-       ===================================================== */
-
-    function openLesson(id) {
-        const lesson = lessons.find(item => item.id === id);
-
-        if (!lesson) {
-            toast("Lesson not found.", "error");
-            return;
-        }
-
-        const index = lessons.indexOf(lesson);
-
-        if (
-            index > 0 &&
-            !state.completedLessons.includes(lesson.id) &&
-            !state.completedLessons.includes(lessons[index - 1].id)
-        ) {
-            toast("Complete the previous lesson to unlock this one.", "error");
-            return;
-        }
-
-        currentLesson = lesson;
-        lessonAnswered = false;
-
-        navigate("lesson");
-    }
-
-
-    function renderLesson() {
-        if (!currentLesson) {
-            navigate("learn");
-            return;
-        }
-
-        const lesson = currentLesson;
-
-        const completed =
-            state.completedLessons.includes(lesson.id);
-
-        const index = lessons.indexOf(lesson);
-
-        const progress = Math.round(
-            ((index + 1) / lessons.length) * 100
+    container.innerHTML = units.map(unit => {
+        const unitLessons = lessons.filter(
+            lesson => lesson.unitId === unit.id
         );
+        const completedCount = unitLessons.filter(lesson =>
+            state.progress.completedLessons.includes(lesson.id)
+        ).length;
+        const unlocked = isUnitUnlocked(unit.id);
 
-        $("#viewContainer").innerHTML = `
-
-            <section class="lesson-shell">
-
-                <div class="lesson-topline">
-
-                    <button
-                        class="icon-button"
-                        data-view="learn"
-                        aria-label="Back to learning path"
-                    >←</button>
-
+        return `
+            <section class="lesson-unit" data-unit-id="${escapeHTML(unit.id)}">
+                <div class="lesson-unit-heading">
                     <div>
-
-                        <div class="eyebrow">
-                            LEVEL ${lesson.number} · ${escapeHTML(lesson.category)}
-                        </div>
-
-                        <div class="progress-track">
-                            <div
-                                class="progress-fill"
-                                style="width:${progress}%"
-                            ></div>
-                        </div>
-
+                        <span class="course-tag">${escapeHTML(unit.id.replace("-", " ").toUpperCase())}</span>
+                        <h2>${escapeHTML(unit.title)}</h2>
+                        <p>${escapeHTML(unit.subtitle)}</p>
                     </div>
-
-                    <span class="badge badge-accent">
-                        ✦ ${lesson.xp} XP
-                    </span>
-
+                    <span class="unit-progress">${completedCount}/${unitLessons.length} lessons</span>
                 </div>
+                ${unlocked ? "" : '<p class="unit-locked-note">Pass the previous checkpoint to unlock this unit.</p>'}
+                <div class="unit-lesson-list">
+                    ${unitLessons.map(lesson => {
+                        const completed =
+                            state.progress.completedLessons.includes(lesson.id);
+                        const available = isLessonAvailable(lesson);
+                        const position = lessons.indexOf(lesson) + 1;
+                        const action = completed ? "Review" : available ? "Start" : "Locked";
 
-
-                <div class="lesson-layout">
-
-                    <article class="card lesson-main-card">
-
-                        <div class="eyebrow">
-                            ${lesson.icon} LEARN SOMETHING NEW
-                        </div>
-
-                        <h1>${escapeHTML(lesson.title)}</h1>
-
-                        <p>${escapeHTML(lesson.explanation)}</p>
-
-                        <div class="lesson-callout">
-                            <strong>Remember this:</strong><br>
-                            ${escapeHTML(lesson.callout)}
-                        </div>
-
-                        <div class="lesson-step">
-
-                            <h3>Today's goal</h3>
-
-                            <p>${escapeHTML(lesson.objective)}</p>
-
-                        </div>
-
-                        <div class="lesson-step">
-
-                            <h3>Explore the code</h3>
-
-                            <pre class="lesson-code"><code>${escapeHTML(lesson.example)}</code></pre>
-
-                        </div>
-
-                        ${lesson.steps.map(step => `
-
-                            <div class="lesson-step">
-
-                                <h3>${escapeHTML(step.heading)}</h3>
-
-                                <p>${escapeHTML(step.text)}</p>
-
-                            </div>
-
-                        `).join("")}
-
-                        <div class="divider"></div>
-
-                        <button
-                            class="button button-primary button-full"
-                            data-action="load-lesson-code"
-                        >
-                            &lt;/&gt; Open this lesson in the playground
-                        </button>
-
-                    </article>
-
-
-                    <aside class="card lesson-practice-card">
-
-                        <div class="eyebrow">QUICK KNOWLEDGE CHECK</div>
-
-                        <h2>Test your understanding.</h2>
-
-                        <p>
-                            Choose an answer. If you make a mistake,
-                            read the explanation and try again.
-                        </p>
-
-                        <div class="lesson-question">
-
-                            <h3>${escapeHTML(lesson.question.prompt)}</h3>
-
-                            <div class="answer-options">
-
-                                ${lesson.question.options.map((option, i) => `
-
-                                    <button
-                                        class="answer-option"
-                                        data-action="lesson-answer"
-                                        data-index="${i}"
-                                    >
-                                        <span>
-                                            ${String.fromCharCode(65 + i)}.
-                                        </span>
-
-                                        <span>${escapeHTML(option)}</span>
-                                    </button>
-
-                                `).join("")}
-
-                            </div>
-
-                            <div
-                                id="lessonFeedback"
-                                aria-live="polite"
-                            ></div>
-
-                        </div>
-
-
-                        <div class="divider"></div>
-
-                        <div class="eyebrow">LESSON REWARD</div>
-
-                        <h3 class="card-title">
-                            ${completed ? "Lesson completed ✓" : "Complete the knowledge check"}
-                        </h3>
-
-                        <p class="card-description">
-                            ${completed
-                                ? "You can review this lesson any time."
-                                : `Earn ${lesson.xp} XP by answering correctly.`}
-                        </p>
-
-                        <button
-                            class="button ${
-                                completed
-                                    ? "button-success"
-                                    : "button-primary"
-                            } button-full"
-                            data-action="complete-lesson"
-                            ${!lessonAnswered && !completed ? "disabled" : ""}
-                        >
-                            ${completed ? "Lesson completed ✓" : "Complete lesson"}
-                        </button>
-
-                        <div style="margin-top:12px">
-
-                            <button
-                                class="button button-ghost button-full"
-                                data-action="next-lesson"
-                            >
-                                ${index < lessons.length - 1
-                                    ? "Next lesson →"
-                                    : "Back to learning path"}
-                            </button>
-
-                        </div>
-
-                    </aside>
-
+                        return `
+                            <article class="lesson-card${available ? "" : " locked"}">
+                                <div class="lesson-number">
+                                    ${completed ? "✓" : String(position).padStart(2, "0")}
+                                </div>
+                                <div class="lesson-details">
+                                    <span class="course-tag">PRACTICAL ${position} · ${completed ? "COMPLETE" : available ? "READY" : "LOCKED"}</span>
+                                    <h3>${escapeHTML(lesson.title)}</h3>
+                                    <p>${escapeHTML(lesson.description)}</p>
+                                </div>
+                                <button class="secondary-button lesson-action"
+                                        data-lesson="${escapeHTML(lesson.id)}"
+                                        ${available ? "" : "disabled"}>
+                                    ${action} →
+                                </button>
+                            </article>
+                        `;
+                    }).join("")}
                 </div>
-
             </section>
-
         `;
+    }).join("");
+}
 
-        if (completed) {
-            lessonAnswered = true;
-            $("[data-action='complete-lesson']").disabled = false;
-        }
+function isUnitUnlocked(unitId) {
+    const unitIndex = units.findIndex(unit => unit.id === unitId);
+    if (unitIndex <= 0) return unitIndex === 0;
+
+    const previousUnit = units[unitIndex - 1];
+    const checkpoint = checkpoints.find(
+        item => item.unitId === previousUnit.id
+    );
+
+    return Boolean(checkpoint && isCheckpointComplete(checkpoint));
+}
+
+function areUnitLessonsComplete(unitId) {
+    const unitLessons = lessons.filter(lesson => lesson.unitId === unitId);
+
+    return unitLessons.length > 0 && unitLessons.every(lesson =>
+        state.progress.completedLessons.includes(lesson.id)
+    );
+}
+
+function isLessonAvailable(lesson) {
+    if (!isUnitUnlocked(lesson.unitId)) return false;
+    if (state.progress.completedLessons.includes(lesson.id)) return true;
+
+    const unitLessons = lessons.filter(
+        item => item.unitId === lesson.unitId
+    );
+    const firstIncomplete = unitLessons.find(item =>
+        !state.progress.completedLessons.includes(item.id)
+    );
+
+    return firstIncomplete?.id === lesson.id;
+}
+
+function hasPassedAssessmentTask(taskId) {
+    return state.progress.assessmentResults.some(result =>
+        result.id === taskId &&
+        Number(result.score) >= Number(result.maxScore) &&
+        Number(result.maxScore) > 0
+    );
+}
+
+function isCheckpointComplete(checkpoint) {
+    return checkpoint.taskIds.every(hasPassedAssessmentTask);
+}
+
+function openLesson(lesson) {
+    if (!isLessonAvailable(lesson)) {
+        toast("Complete the previous practical first.");
+        return;
     }
 
+    state.currentLesson = lesson.id;
+    state.challengeContext = null;
+    state.lessonAnswerCorrect = false;
 
-    function answerLesson(index) {
-        if (!currentLesson) return;
+    $("#lessonStudyUnit").textContent =
+        units.find(unit => unit.id === lesson.unitId).title;
+    $("#lessonStudyTitle").textContent = lesson.title;
+    $("#lessonStudyDescription").textContent = lesson.description;
+    $("#lessonConcept").textContent = lesson.concept;
+    $("#lessonExampleCode").textContent = lesson.exampleCode;
+    $("#lessonQuestion").textContent = lesson.question;
+    $("#lessonFeedback").textContent = "";
+    $("#startLessonPracticeButton").hidden = true;
 
-        const lesson = currentLesson;
-        const correct = index === lesson.question.correct;
+    $("#lessonAnswer").innerHTML = `
+        <option value="">Choose an answer</option>
+        ${lesson.options.map(option =>
+            `<option value="${escapeHTML(option.value)}">${escapeHTML(option.label)}</option>`
+        ).join("")}
+    `;
 
-        const feedback = $("#lessonFeedback");
+    $("#lessonStudy").hidden = false;
+    $("#lessonStudy").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
 
-        const buttons = $$(".answer-option");
+$("#lessonList").addEventListener("click", event => {
+    const button = event.target.closest("[data-lesson]");
 
-        buttons.forEach((button, i) => {
-            button.disabled = true;
+    if (!button) return;
 
-            if (i === lesson.question.correct) {
-                button.classList.add("correct");
-            } else if (i === index && !correct) {
-                button.classList.add("incorrect");
+    const lesson = lessons.find(
+        item => item.id === button.dataset.lesson
+    );
+
+    if (!lesson) return;
+
+    openLesson(lesson);
+});
+
+$("#closeLessonStudyButton").addEventListener("click", () => {
+    $("#lessonStudy").hidden = true;
+});
+
+$("#checkLessonAnswerButton").addEventListener("click", () => {
+    const lesson = lessonById.get(state.currentLesson);
+    if (!lesson) return;
+
+    if ($("#lessonAnswer").value !== lesson.answer) {
+        state.lessonAnswerCorrect = false;
+        $("#lessonFeedback").textContent =
+            "Not quite. Re-read the example and try again.";
+        $("#startLessonPracticeButton").hidden = true;
+        return;
+    }
+
+    state.lessonAnswerCorrect = true;
+    $("#lessonFeedback").textContent =
+        "Correct. Now complete the practical to finish this lesson.";
+    $("#startLessonPracticeButton").hidden = false;
+});
+
+$("#startLessonPracticeButton").addEventListener("click", () => {
+    const lesson = lessonById.get(state.currentLesson);
+    if (!lesson || !state.lessonAnswerCorrect) return;
+
+    $("#lessonStudy").hidden = true;
+    loadChallenge(lesson.challengeId);
+});
+
+
+/* =========================================================
+   CODE EDITOR INITIALISATION
+========================================================= */
+
+function editorMode(language) {
+    if (language === "html") return "htmlmixed";
+    if (language === "css") return "css";
+
+    return "javascript";
+}
+
+
+function initialiseEditor() {
+    state.editor = CodeMirror.fromTextArea(
+        $("#codeEditor"),
+        {
+            mode: "javascript",
+            theme: "dracula",
+
+            lineNumbers: true,
+            lineWrapping: false,
+
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: false,
+
+            autoCloseBrackets: true,
+
+            gutters: [
+                "CodeMirror-linenumbers",
+                "CodeMirror-lint-markers"
+            ],
+
+            lint: {
+                esversion: 11,
+                asi: false,
+                undef: false,
+                browser: true,
+                node: false
             }
-        });
-
-        trackAnswer(lesson.category, correct);
-
-        feedback.innerHTML = `
-
-            <div class="feedback-box ${correct ? "success" : "error"}">
-
-                <strong>
-                    ${correct ? "Correct! 🎉" : "Not quite — let's learn from it."}
-                </strong>
-
-                <br>
-
-                ${escapeHTML(lesson.question.explanation)}
-
-            </div>
-
-            ${correct ? "" : `
-
-                <button
-                    class="button button-small button-ghost"
-                    data-action="retry-lesson-question"
-                    style="margin-top:10px"
-                >
-                    Try again
-                </button>
-
-            `}
-
-        `;
-
-        if (correct) {
-            lessonAnswered = true;
-
-            $("[data-action='complete-lesson']").disabled = false;
-
-        } else {
-            lessonAnswered = false;
         }
+    );
+
+    state.editor.setSize(null, 400);
+
+    state.editor.setValue(challenges.factorial.starterCode);
+
+    state.editor.on("change", () => {
+        updateEditorStatus();
+
+        $("#unsavedDot").hidden = false;
+
+        // Syntax diagnostics update automatically.
+        // General logical errors require tests or explicit checks.
+    });
+
+    state.editor.on("cursorActivity", updateEditorStatus);
+
+    updateEditorStatus();
+}
+
+
+function updateEditorStatus() {
+    if (!state.editor) return;
+
+    const lineCount = state.editor.lineCount();
+
+    const cursor = state.editor.getCursor();
+
+    $("#editorLineCount").textContent =
+        `Lines: ${lineCount} · Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+
+    const diagnostics = getDiagnostics();
+
+    const errors = diagnostics.filter(
+        item => item.severity === "error"
+    );
+
+    const warnings = diagnostics.filter(
+        item => item.severity === "warning"
+    );
+
+    const counter = $("#editorErrorCount");
+
+    if (errors.length) {
+        counter.textContent =
+            `${errors.length} error${errors.length === 1 ? "" : "s"}`;
+
+        counter.className = "has-errors";
+
+    } else if (warnings.length) {
+        counter.textContent =
+            `${warnings.length} warning${warnings.length === 1 ? "" : "s"}`;
+
+        counter.className = "has-warnings";
+
+    } else {
+        counter.textContent = "No reported syntax errors";
+        counter.className = "";
+    }
+}
+
+
+function getDiagnostics() {
+    if (!state.editor) return [];
+
+    const code = state.editor.getValue();
+
+    if ($("#languageSelect").value !== "javascript") {
+        return [];
     }
 
+    if (!window.JSHINT) return [];
 
-    function retryLessonQuestion() {
-        if (!currentLesson) return;
+    JSHINT(code, {
+        esversion: 11,
+        asi: false,
+        undef: false,
+        browser: true,
+        node: false
+    });
 
-        const lesson = currentLesson;
+    return (JSHINT.errors || [])
+        .filter(Boolean)
+        .map(error => ({
+            severity: error.code?.startsWith("W")
+                ? "warning"
+                : "error",
 
-        $("#lessonFeedback").innerHTML = "";
+            line: error.line,
+            column: error.character,
+            message: error.reason
+        }));
+}
 
-        $$(".answer-option").forEach(button => {
-            button.disabled = false;
-            button.classList.remove("correct", "incorrect");
+
+/* =========================================================
+   LANGUAGE SELECTOR
+========================================================= */
+
+$("#languageSelect").addEventListener("change", () => {
+    const language = $("#languageSelect").value;
+
+    state.editor.setOption("mode", editorMode(language));
+
+    $("#fileName").textContent = {
+        javascript: "solution.js",
+        html: "index.html",
+        css: "style.css"
+    }[language];
+
+    if (language === "javascript") {
+        state.editor.setOption("lint", {
+            esversion: 11,
+            asi: false,
+            undef: false,
+            browser: true
         });
+    } else {
+        state.editor.setOption("lint", false);
     }
 
+    updateEditorStatus();
+    state.editor.refresh();
+});
 
-    function completeLesson() {
-        if (!currentLesson) return;
 
-        const id = currentLesson.id;
+/* =========================================================
+   CHALLENGE LOADING
+========================================================= */
 
-        if (state.completedLessons.includes(id)) {
-            toast("You've already completed this lesson.");
+function loadChallenge(key) {
+    const challenge = challenges[key];
+
+    if (!challenge) return;
+
+    state.currentChallenge = key;
+    state.challengeContext =
+        challenge.assessmentTaskId &&
+        state.currentAssessmentTask === key
+            ? "assessment"
+            : challenge.lessonId === state.currentLesson
+                ? "lesson"
+                : null;
+    state.hintVisible = false;
+
+    $("#challengeTitle").textContent = challenge.title;
+
+    $("#challengeDescription").textContent =
+        challenge.description;
+
+    $("#challengeInstructions").innerHTML =
+        challenge.instructions.map(item =>
+            `<li>${escapeHTML(item)}</li>`
+        ).join("");
+
+    $(".example-box code").textContent = challenge.example;
+
+    $("#hintText").textContent = challenge.hint;
+
+    $("#showHintButton").textContent = "Show hint";
+
+    $("#testCases").innerHTML =
+        challenge.testCases.map((test, index) => `
+            <div class="test-case" id="testCase${index}">
+                <span>${escapeHTML(test.label)}</span>
+                <span class="test-result">Not tested</span>
+            </div>
+        `).join("");
+
+    $("#languageSelect").value = challenge.language;
+
+    state.editor.setOption(
+        "mode",
+        editorMode(challenge.language)
+    );
+    state.editor.setOption(
+        "lint",
+        challenge.language === "javascript"
+            ? {
+                esversion: 11,
+                asi: false,
+                undef: false,
+                browser: true,
+                node: false
+            }
+            : false
+    );
+
+    $("#fileName").textContent = {
+        javascript: "solution.js",
+        html: "index.html",
+        css: "style.css"
+    }[challenge.language];
+
+    state.editor.setValue(challenge.starterCode);
+
+    $("#unsavedDot").hidden = true;
+
+    $("#outputContent").innerHTML = `
+        <p class="output-placeholder">
+            Run your solution to see the results.
+        </p>
+    `;
+
+    $("#outputStatus").textContent = "Waiting to run";
+
+    navigate("practice");
+}
+
+
+/* =========================================================
+   HINT BUTTON
+========================================================= */
+
+$("#showHintButton").addEventListener("click", () => {
+    state.hintVisible = !state.hintVisible;
+
+    $("#hintText").hidden = !state.hintVisible;
+
+    $("#showHintButton").textContent =
+        state.hintVisible ? "Hide hint" : "Show hint";
+});
+
+
+/* =========================================================
+   OUTPUT RENDERING
+========================================================= */
+
+function clearOutput() {
+    $("#outputContent").innerHTML = "";
+}
+
+function writeOutput(message, type = "normal") {
+    const content = $("#outputContent");
+
+    const line = document.createElement("div");
+
+    line.className = `output-line ${type}`;
+
+    line.textContent = message;
+
+    content.appendChild(line);
+
+    content.scrollTop = content.scrollHeight;
+}
+
+
+function formatOutput(value) {
+    if (typeof value === "string") return value;
+
+    if (typeof value === "undefined") return "undefined";
+
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+}
+
+
+$("#clearOutputButton").addEventListener("click", () => {
+    clearOutput();
+
+    $("#outputStatus").textContent = "Output cleared";
+});
+
+
+/* =========================================================
+   ISOLATED WORKER RUNNER
+========================================================= */
+
+function runWorkerScript(source, payload, timeoutMessage) {
+    return new Promise(resolve => {
+        let worker;
+        let url;
+        let timeout;
+        let finished = false;
+
+        function finish(result) {
+            if (finished) return;
+
+            finished = true;
+            clearTimeout(timeout);
+            if (worker) worker.terminate();
+            if (url) URL.revokeObjectURL(url);
+            resolve(result);
+        }
+
+        if (typeof Worker === "undefined" || typeof Blob === "undefined") {
+            finish({
+                success: false,
+                passedTests: 0,
+                results: [],
+                error: "This browser does not support the isolated code runner.",
+                message: "This browser does not support the isolated code runner."
+            });
             return;
         }
 
-        if (!lessonAnswered) {
-            toast("Answer the knowledge check correctly first.", "error");
-            return;
-        }
-
-        state.completedLessons.push(id);
-
-        completeDailyTask("lesson");
-
-        saveState();
-
-        awardXP(currentLesson.xp, currentLesson.title);
-
-        checkAchievements();
-
-        renderLesson();
-
-        toast("Lesson completed! Your progress is saved.");
-    }
-
-
-    /* =====================================================
-       CODE PLAYGROUND
-       ===================================================== */
-
-    function setEditorCode(code) {
-        editorCode = {
-            html: code.html ?? "",
-            css: code.css ?? "",
-            js: code.js ?? ""
-        };
-    }
-
-
-    function renderPlayground() {
-        $("#viewContainer").innerHTML = `
-
-            <section class="playground-header">
-
-                <div>
-                    <div class="eyebrow">YOUR CREATIVE WORKSPACE</div>
-
-                    <h1 class="page-heading">Code playground</h1>
-
-                    <p class="page-description">
-                        Write HTML, style it with CSS, add JavaScript,
-                        and see your page update in the preview.
-                    </p>
-                </div>
-
-                <div class="playground-actions">
-
-                    <button
-                        class="button button-primary"
-                        data-action="run-code"
-                    >
-                        ▶ Run code
-                    </button>
-
-                    <button
-                        class="button button-ghost"
-                        data-action="reset-code"
-                    >
-                        ↺ Reset
-                    </button>
-
-                </div>
-
-            </section>
-
-
-            <section class="editor-workspace">
-
-                <div class="editor-toolbar">
-
-                    <div class="editor-tabs">
-
-                        <button
-                            class="editor-tab ${
-                                currentEditorTab === "html" ? "active" : ""
-                            }"
-                            data-action="editor-tab"
-                            data-lang="html"
-                        >
-                            ◇ HTML
-                        </button>
-
-                        <button
-                            class="editor-tab ${
-                                currentEditorTab === "css" ? "active" : ""
-                            }"
-                            data-action="editor-tab"
-                            data-lang="css"
-                        >
-                            ◇ CSS
-                        </button>
-
-                        <button
-                            class="editor-tab ${
-                                currentEditorTab === "js" ? "active" : ""
-                            }"
-                            data-action="editor-tab"
-                            data-lang="js"
-                        >
-                            ◇ JavaScript
-                        </button>
-
-                    </div>
-
-                    <span class="badge badge-green">Live preview</span>
-
-                </div>
-
-
-                <div class="editor-body">
-
-                    <section class="editor-pane">
-
-                        <div class="pane-header">
-                            <span id="editorFileName">index.html</span>
-                            <span>Editable source</span>
-                        </div>
-
-                        <textarea
-                            id="codeEditor"
-                            class="code-editor"
-                            spellcheck="false"
-                            autocomplete="off"
-                            autocapitalize="off"
-                            aria-label="Code editor"
-                            wrap="off"
-                        >${escapeHTML(editorCode[currentEditorTab])}</textarea>
-
-                    </section>
-
-
-                    <section class="editor-pane">
-
-                        <div class="pane-header">
-                            <span>Preview</span>
-                            <span>Isolated sandbox</span>
-                        </div>
-
-                        <iframe
-                            id="codePreview"
-                            class="preview-frame"
-                            title="Web page preview"
-                            sandbox="allow-scripts"
-                            referrerpolicy="no-referrer"
-                        ></iframe>
-
-                    </section>
-
-                </div>
-
-
-                <div class="console-panel">
-
-                    <div class="console-heading">
-                        <span>OUTPUT CONSOLE</span>
-
-                        <button
-                            class="button button-small button-ghost"
-                            data-action="clear-console"
-                        >
-                            Clear
-                        </button>
-                    </div>
-
-                    <div
-                        class="console-output"
-                        id="consoleOutput"
-                        aria-live="polite"
-                    >Run your code to see console output.</div>
-
-                </div>
-
-            </section>
-
-
-            <div class="playground-note">
-
-                <strong>💡 How it works:</strong>
-
-                Edit the HTML to change the structure, CSS to change the
-                appearance, and JavaScript to add behaviour. Select
-                <strong>Run code</strong> to refresh the preview.
-
-                Your code runs in a sandboxed iframe. The preview can display
-                your page and report supported console messages, but this
-                editor is not a full professional IDE or a complete JavaScript
-                debugging environment.
-
-            </div>
-
-
-            <section class="section">
-
-                <div class="section-heading">
-                    <div>
-                        <h2>Try a mini challenge</h2>
-                        <p>Make a small improvement to your project.</p>
-                    </div>
-                </div>
-
-                <div class="card">
-
-                    <h3 class="card-title">
-                        Challenge: Make your page interactive
-                    </h3>
-
-                    <p class="card-description">
-                        Add a button to your HTML, then use JavaScript
-                        addEventListener() to respond when someone clicks it.
-                        Change an element's text using textContent.
-                    </p>
-
-                    <button
-                        class="button button-primary"
-                        data-action="load-dom-example"
-                        style="margin-top:15px"
-                    >
-                        Load interactive example
-                    </button>
-
-                </div>
-
-            </section>
-
-        `;
-
-        bindEditor();
-
-        updateEditorTab();
-    }
-
-
-    function bindEditor() {
-        const editor = $("#codeEditor");
-
-        editor.addEventListener("input", () => {
-            editorCode[currentEditorTab] = editor.value;
-        });
-
-        editor.addEventListener("keydown", event => {
-            if (event.key === "Tab") {
-                event.preventDefault();
-
-                const start = editor.selectionStart;
-                const end = editor.selectionEnd;
-
-                editor.setRangeText("  ", start, end, "end");
-
-                editorCode[currentEditorTab] = editor.value;
-            }
-
-            if (
-                (event.ctrlKey || event.metaKey) &&
-                event.key.toLowerCase() === "enter"
-            ) {
-                event.preventDefault();
-                runCode();
-            }
-        });
-    }
-
-
-    function updateEditorTab() {
-        const editor = $("#codeEditor");
-
-        if (!editor) return;
-
-        editor.value = editorCode[currentEditorTab];
-
-        $("#editorFileName").textContent = {
-            html: "index.html",
-            css: "style.css",
-            js: "script.js"
-        }[currentEditorTab];
-
-        $$(".editor-tab").forEach(button => {
-            button.classList.toggle(
-                "active",
-                button.dataset.lang === currentEditorTab
+        try {
+            url = URL.createObjectURL(
+                new Blob([source], { type: "text/javascript" })
             );
-        });
-    }
-
-
-    function switchEditorTab(language) {
-        const editor = $("#codeEditor");
-
-        if (editor) {
-            editorCode[currentEditorTab] = editor.value;
+            worker = new Worker(url);
+            worker.onmessage = event => finish(event.data);
+            worker.onerror = event => finish({
+                success: false,
+                passedTests: 0,
+                results: [],
+                error: `Code runner failed: ${event.message || "unknown error"}`,
+                message: `Code runner failed: ${event.message || "unknown error"}`
+            });
+            timeout = setTimeout(() => finish({
+                success: false,
+                passedTests: 0,
+                results: [],
+                error: timeoutMessage,
+                message: timeoutMessage
+            }), 1800);
+            worker.postMessage(payload);
+        } catch (error) {
+            finish({
+                success: false,
+                passedTests: 0,
+                results: [],
+                error: `Could not start the isolated code runner: ${error.message}`,
+                message: `Could not start the isolated code runner: ${error.message}`
+            });
         }
+    });
+}
 
-        if (!["html", "css", "js"].includes(language)) {
-            return;
-        }
-
-        currentEditorTab = language;
-
-        updateEditorTab();
-    }
-
-
-    function consoleMessage(text, type = "") {
-        const output = $("#consoleOutput");
-
-        if (!output) return;
-
-        const line = document.createElement("div");
-
-        line.className = `console-line ${type}`;
-        line.textContent = text;
-
-        output.appendChild(line);
-
-        output.scrollTop = output.scrollHeight;
-    }
-
-
-    function normalizeConsoleArguments(args) {
-        return args.map(value => {
-            if (typeof value === "string") {
-                return value;
-            }
-
-            if (value === null) {
-                return "null";
-            }
-
-            if (value === undefined) {
-                return "undefined";
-            }
-
-            if (
-                typeof value === "object" ||
-                typeof value === "function"
-            ) {
+function runJavaScript(code, inputs) {
+    const source = `
+        self.onmessage = function(event) {
+            const { code, inputs } = event.data;
+            const results = [];
+            const format = value => {
+                if (typeof value === "string") return value;
                 try {
-                    return JSON.stringify(value);
+                    const json = JSON.stringify(value);
+                    return typeof json === "undefined" ? String(value) : json;
                 } catch {
                     return String(value);
                 }
+            };
+            const report = (type, values) => results.push({
+                type,
+                message: values.map(format).join(" ")
+            });
+
+            console.log = (...values) => report("normal", values);
+            console.warn = (...values) => report("warning", values);
+            console.error = (...values) => report("error", values);
+            globalThis.prompt = message => {
+                const value = inputs.length ? inputs.shift() : null;
+                report("info", [
+                    String(message || "Input"),
+                    value === null ? "[no input provided]" : value
+                ]);
+                return value;
+            };
+            globalThis.alert = value => report("normal", [value]);
+            globalThis.document = {
+                write: (...values) => report("normal", values)
+            };
+
+            try {
+                new Function(code)();
+                self.postMessage({ results });
+            } catch (error) {
+                self.postMessage({
+                    results,
+                    error: error.name + ": " + error.message
+                });
+            }
+        };
+    `;
+
+    return runWorkerScript(
+        source,
+        { code, inputs },
+        "Execution timed out. Check for a loop that never ends."
+    );
+}
+
+
+/* =========================================================
+   HTML / CSS PREVIEW
+========================================================= */
+
+function runMarkup(language, code) {
+    return new Promise(resolve => {
+        const frame = document.createElement("iframe");
+
+        frame.setAttribute("sandbox", "allow-scripts");
+
+        frame.style.display = "none";
+
+        let finished = false;
+
+        const timer = setTimeout(() => {
+            if (finished) return;
+
+            finished = true;
+
+            window.removeEventListener("message", listener);
+
+            resolve({
+                error: "Preview timed out."
+            });
+
+        }, 1800);
+
+        const token =
+            "preview_" + Math.random().toString(36).slice(2);
+
+        function listener(event) {
+            if (event.source !== frame.contentWindow) return;
+
+            const data = event.data;
+
+            if (!data || data.token !== token) return;
+
+            if (data.type === "preview-output") {
+                writeOutput(data.message, data.outputType);
             }
 
-            return String(value);
-        }).join(" ");
-    }
+            if (data.type === "preview-done") {
+                if (finished) return;
 
+                finished = true;
 
-    function runCode() {
-        const editor = $("#codeEditor");
+                clearTimeout(timer);
 
-        if (!editor) return;
+                window.removeEventListener("message", listener);
 
-        editorCode[currentEditorTab] = editor.value;
+                resolve({ success: true });
+            }
+        }
 
-        const preview = $("#codePreview");
+        window.addEventListener("message", listener);
 
-        const output = $("#consoleOutput");
+        let documentContent;
 
-        output.replaceChildren();
-
-        const sourceHTML = editorCode.html;
-        const sourceCSS = editorCode.css;
-        const sourceJS = editorCode.js;
-
-        /*
-         * This is a learning sandbox, not a security boundary for
-         * untrusted server execution.
-         *
-         * The iframe has allow-scripts but not allow-same-origin.
-         * Student code is not executed in the parent document.
-         */
-
-        const bridge = `
-<script>
-(function () {
-    const send = function (type, args) {
-        try {
-            parent.postMessage({
-                channel: "codequest-console",
-                type: type,
-                values: Array.from(args).map(function (value) {
-                    if (typeof value === "string") return value;
-                    if (value === null) return "null";
-                    if (value === undefined) return "undefined";
-
-                    try {
-                        return JSON.stringify(value);
-                    } catch (_) {
-                        return String(value);
-                    }
-                })
-            }, "*");
-        } catch (_) {}
-    };
-
-    ["log", "info", "warn", "error"].forEach(function (type) {
-        const original = console[type];
-
-        console[type] = function () {
-            send(type, arguments);
-            original.apply(console, arguments);
-        };
-    });
-
-    window.addEventListener("error", function (event) {
-        send("error", [event.message || "Unknown runtime error"]);
-    });
-
-    window.addEventListener("unhandledrejection", function (event) {
-        send("error", [
-            "Unhandled promise rejection: " +
-            String(event.reason)
-        ]);
-    });
-})();
-<\/script>`;
-
-        let finalHTML = sourceHTML;
-
-        const hasHTMLDocument =
-            /<!doctype|<html[\s>]/i.test(sourceHTML);
-
-        if (!hasHTMLDocument) {
-            finalHTML = `
+        if (language === "html") {
+            documentContent = code;
+        } else {
+            documentContent = `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>${sourceCSS}</style>
+<style>${code.replace(/<\/style/gi, "<\\/style")}</style>
 </head>
 <body>
-${sourceHTML}
-${bridge}
+<h1>CSS preview</h1>
+<p>Your CSS styles are applied to this sample page.</p>
+<div class="preview-box">Example element</div>
 <script>
-${sourceJS}
+document.querySelector(".preview-box").style.padding = "16px";
 <\/script>
 </body>
 </html>`;
-        } else {
-            /*
-             * For complete HTML documents, place the CSS and bridge
-             * before the user's scripts when possible.
-             */
-            const cssBlock = `<style>${sourceCSS}</style>`;
-
-            if (/<\/head\s*>/i.test(finalHTML)) {
-                finalHTML = finalHTML.replace(
-                    /<\/head\s*>/i,
-                    `${cssBlock}${bridge}</head>`
-                );
-            } else {
-                finalHTML = cssBlock + bridge + finalHTML;
-            }
-
-            /*
-             * Append the separate JavaScript source to the end of
-             * the document so body elements exist before it runs.
-             */
-            finalHTML = finalHTML.replace(
-                /<\/body\s*>/i,
-                `<script>${sourceJS}\n<\/script></body>`
-            );
-
-            if (!/<\/body\s*>/i.test(finalHTML)) {
-                finalHTML += `<script>${sourceJS}\n<\/script>`;
-            }
         }
-
-        try {
-            preview.srcdoc = finalHTML;
-
-            consoleMessage("Preview updated.", "success");
-
-            consoleMessage(
-                "Tip: Ctrl + Enter runs the current editor contents."
-            );
-
-        } catch (error) {
-            consoleMessage(
-                `Unable to update preview: ${error.message}`,
-                "error"
-            );
-        }
-    }
-
-
-    function handleConsoleMessage(event) {
-        if (event.source !== $("#codePreview")?.contentWindow) {
-            return;
-        }
-
-        const data = event.data;
-
-        if (
-            !data ||
-            data.channel !== "codequest-console" ||
-            !Array.isArray(data.values)
-        ) {
-            return;
-        }
-
-        const type = ["log", "info", "warn", "error"].includes(data.type)
-            ? data.type
-            : "log";
-
-        consoleMessage(
-            normalizeConsoleArguments(data.values),
-            type === "error" ? "error" : ""
-        );
-    }
-
-
-    function resetCode() {
-        setEditorCode(starterCode);
-
-        renderPlayground();
-
-        toast("Starter project restored.");
-    }
-
-
-    function loadLessonCode() {
-        if (!currentLesson || !currentLesson.starter) {
-            return;
-        }
-
-        setEditorCode(currentLesson.starter);
-
-        navigate("playground");
-
-        toast("Lesson code loaded into the playground.");
-    }
-
-
-    function loadDOMExample() {
-        setEditorCode({
-            html: `<h1>Interactive Page</h1>
-
-<p id="message">Click the button to change this message.</p>
-
-<button id="myButton">Change message</button>`,
-
-            css: `body {
-  font-family: system-ui, sans-serif;
-  padding: 30px;
-  background: #f3f0ff;
-  color: #25233b;
-}
-
-button {
-  padding: 11px 15px;
-  border: none;
-  border-radius: 8px;
-  background: #7255d9;
-  color: white;
-  cursor: pointer;
-}`,
-
-            js: `const button = document.querySelector("#myButton");
-
-button.addEventListener("click", function () {
-  document.querySelector("#message").textContent =
-    "You did it! JavaScript changed the page.";
-});`
-        });
-
-        renderPlayground();
-
-        runCode();
-    }
-
-
-    /* =====================================================
-       CHALLENGE ENGINE
-       ===================================================== */
-
-    function renderChallenges() {
-        $("#viewContainer").innerHTML = `
-
-            <section class="welcome-row">
-
-                <div>
-                    <div class="eyebrow">PRACTISE YOUR SKILLS</div>
-
-                    <h1 class="page-heading">Challenge arena</h1>
-
-                    <p class="page-description">
-                        Debug broken code, understand why it fails,
-                        and learn to recognise common programming mistakes.
-                    </p>
-                </div>
-
-            </section>
-
-
-            <section class="challenge-grid">
-
-                ${challenges.map(challenge => {
-
-                    const completed =
-                        state.completedChallenges.includes(challenge.id);
-
-                    return `
-
-                        <article class="challenge-card">
-
-                            <div class="challenge-icon">
-                                ${challenge.icon}
-                            </div>
-
-                            <div class="challenge-meta">
-
-                                <span class="badge badge-accent">
-                                    ${escapeHTML(challenge.category)}
-                                </span>
-
-                                <span class="badge">
-                                    ${escapeHTML(challenge.difficulty)}
-                                </span>
-
-                            </div>
-
-                            <h3>${escapeHTML(challenge.title)}</h3>
-
-                            <p>${escapeHTML(challenge.description)}</p>
-
-                            <div class="challenge-meta">
-
-                                <span class="badge">
-                                    ✦ ${challenge.xp} XP
-                                </span>
-
-                                ${completed
-                                    ? `<span class="badge badge-green">Completed ✓</span>`
-                                    : ""}
-
-                            </div>
-
-                            <button
-                                class="button ${
-                                    completed
-                                        ? "button-ghost"
-                                        : "button-primary"
-                                } button-full"
-                                data-action="open-challenge"
-                                data-id="${challenge.id}"
-                            >
-                                ${completed ? "Practise again" : "Start challenge →"}
-                            </button>
-
-                        </article>
-
-                    `;
-                }).join("")}
-
-            </section>
-
-
-            <section class="section">
-
-                <div class="card">
-
-                    <div class="eyebrow">NEXT STEP</div>
-
-                    <h2 class="card-title">
-                        Ready to write code yourself?
-                    </h2>
-
-                    <p class="card-description">
-                        Open the playground to experiment with your own
-                        HTML, CSS and JavaScript.
-                    </p>
-
-                    <button
-                        class="button button-primary"
-                        data-view="playground"
-                        style="margin-top:15px"
-                    >
-                        Open playground →
-                    </button>
-
-                </div>
-
-            </section>
-
-        `;
-    }
-
-
-    function openChallenge(id) {
-        const challenge = challenges.find(item => item.id === id);
-
-        if (!challenge) {
-            toast("Challenge not found.", "error");
-            return;
-        }
-
-        currentChallenge = challenge;
-        challengeChecked = false;
-        challengeAttempts = 0;
-
-        navigate("challenge");
-    }
-
-
-    function renderChallenge() {
-        if (!currentChallenge) {
-            navigate("challenges");
-            return;
-        }
-
-        const challenge = currentChallenge;
-
-        const completed =
-            state.completedChallenges.includes(challenge.id);
-
-        $("#viewContainer").innerHTML = `
-
-            <section class="lesson-shell">
-
-                <div class="lesson-topline">
-
-                    <button
-                        class="icon-button"
-                        data-view="challenges"
-                        aria-label="Back to challenges"
-                    >←</button>
-
-                    <div>
-                        <div class="eyebrow">
-                            DEBUGGING CHALLENGE
-                        </div>
-
-                        <strong>${escapeHTML(challenge.title)}</strong>
-                    </div>
-
-                    <span class="badge badge-accent">
-                        ✦ ${challenge.xp} XP
-                    </span>
-
-                </div>
-
-
-                <div class="card">
-
-                    <div class="challenge-icon">
-                        ${challenge.icon}
-                    </div>
-
-                    <h1 class="page-heading">
-                        ${escapeHTML(challenge.title)}
-                    </h1>
-
-                    <p>${escapeHTML(challenge.description)}</p>
-
-                    <div class="lesson-callout">
-                        ${escapeHTML(challenge.question)}
-                    </div>
-
-                    <label for="challengeEditor" class="card-title">
-                        Edit the code
-                    </label>
-
-                    <textarea
-                        id="challengeEditor"
-                        class="code-editor"
-                        style="
-                            min-height:220px;
-                            margin-top:10px;
-                            border:1px solid var(--border);
-                            border-radius:12px;
-                        "
-                        spellcheck="false"
-                        aria-label="Challenge code editor"
-                    >${escapeHTML(challenge.initial)}</textarea>
-
-                    <div
-                        id="challengeFeedback"
-                        aria-live="polite"
-                        style="margin-top:15px"
-                    ></div>
-
-                    <div class="editor-split-controls" style="margin-top:17px">
-
-                        <button
-                            class="button button-primary"
-                            data-action="check-challenge"
-                        >
-                            Check solution
-                        </button>
-
-                        <button
-                            class="button button-ghost"
-                            data-action="show-hint"
-                        >
-                            💡 Hint
-                        </button>
-
-                        <button
-                            class="button button-ghost"
-                            data-action="reset-challenge"
-                        >
-                            Reset code
-                        </button>
-
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="playground-note">
-                        <strong>Important:</strong>
-                        This starter challenge checks a known correction.
-                        Real programming assessment requires more extensive
-                        checks, including syntax, behaviour, and test cases.
-                    </div>
-
-                    ${completed ? `
-
-                        <div class="feedback-box success">
-                            You have already completed this challenge.
-                            You can practise it again, but you will not earn
-                            its completion reward twice.
-                        </div>
-
-                    ` : ""}
-
-                </div>
-
-            </section>
-
-        `;
-    }
-
-
-    function normalizeCode(code) {
-        return String(code)
-            .replace(/\r\n/g, "\n")
-            .replace(/[ \t]+$/gm, "")
-            .trim();
-    }
-
-
-    function checkChallenge() {
-        if (!currentChallenge) return;
-
-        const challenge = currentChallenge;
-
-        const editor = $("#challengeEditor");
-
-        if (!editor) return;
-
-        const answer = normalizeCode(editor.value);
-        const solution = normalizeCode(challenge.solution);
-
-        challengeAttempts += 1;
 
         /*
-         * This is intentionally a narrowly defined comparison.
-         * It does not claim to be a general-purpose code grader.
+         * Scripts in the preview are permitted, but the iframe has no
+         * same-origin permission. Do not use this preview as a hardened
+         * security boundary for untrusted public submissions.
          */
 
-        const correct = answer === solution;
-
-        const feedback = $("#challengeFeedback");
-
-        trackAnswer("Debugging", correct);
-
-        if (correct) {
-            challengeChecked = true;
-
-            feedback.innerHTML = `
-
-                <div class="feedback-box success">
-
-                    <strong>Excellent debugging! 🎉</strong>
-
-                    <br>
-
-                    ${escapeHTML(challenge.explanation)}
-
-                </div>
-
-            `;
-
-            if (!state.completedChallenges.includes(challenge.id)) {
-                state.completedChallenges.push(challenge.id);
-
-                state.challengeBest[challenge.id] = {
-                    attempts: challengeAttempts,
-                    completedAt: new Date().toISOString()
-                };
-
-                completeDailyTask("challenge");
-
-                saveState();
-
-                awardXP(challenge.xp, challenge.title);
-
-                checkAchievements();
-            }
-
-        } else {
-            challengeChecked = false;
-
-            feedback.innerHTML = `
-
-                <div class="feedback-box error">
-
-                    <strong>Not quite. Keep investigating.</strong>
-
-                    <br>
-
-                    Compare the broken code with the intended result.
-                    Look at punctuation, operators, and opening and
-                    closing tags.
-
-                </div>
-
-            `;
-
-            toast("Try another correction.", "error");
-        }
-    }
-
-
-    function showChallengeHint() {
-        if (!currentChallenge) return;
-
-        const feedback = $("#challengeFeedback");
-
-        const hint = document.createElement("div");
-
-        hint.className = "feedback-box info";
-        hint.textContent = currentChallenge.hint;
-
-        feedback.appendChild(hint);
-    }
-
-
-    /* =====================================================
-       ASSESSMENT ENGINE
-       ===================================================== */
-
-    function renderAssessment() {
-        if (activeAssessment) {
-            renderAssessmentQuestion();
-            return;
-        }
-
-        const best = state.quizBest;
-
-        $("#viewContainer").innerHTML = `
-
-            <section class="welcome-row">
-
-                <div>
-                    <div class="eyebrow">CHECK YOUR UNDERSTANDING</div>
-
-                    <h1 class="page-heading">PBA assessment</h1>
-
-                    <p class="page-description">
-                        Test what you know about HTML, CSS and JavaScript.
-                        Read each question carefully and review the explanations
-                        after completing the assessment.
-                    </p>
-                </div>
-
-            </section>
-
-
-            <section class="assessment-intro">
-
-                <div class="assessment-overview">
-
-                    <div class="eyebrow">KNOWLEDGE CHECK</div>
-
-                    <h2>Show what you've learned.</h2>
-
-                    <p>
-                        This practice assessment contains multiple-choice
-                        and output-prediction questions. It gives immediate
-                        feedback after submission and records your result.
-                    </p>
-
-                    <div class="assessment-facts">
-
-                        <div class="assessment-fact">
-                            <span>✓</span>
-                            <span>${assessmentQuestions.length} questions</span>
-                        </div>
-
-                        <div class="assessment-fact">
-                            <span>✓</span>
-                            <span>
-                                ${assessmentQuestions.reduce(
-                                    (sum, question) => sum + question.marks,
-                                    0
-                                )} total marks
-                            </span>
-                        </div>
-
-                        <div class="assessment-fact">
-                            <span>✓</span>
-                            <span>HTML, CSS and JavaScript fundamentals</span>
-                        </div>
-
-                        <div class="assessment-fact">
-                            <span>✓</span>
-                            <span>Review answers and explanations</span>
-                        </div>
-
-                    </div>
-
-                    <button
-                        class="button button-primary"
-                        data-action="start-assessment"
-                        style="margin-top:25px"
-                    >
-                        Begin assessment →
-                    </button>
-
-                </div>
-
-
-                <div class="assessment-stat-card">
-
-                    <span class="badge badge-accent">
-                        YOUR BEST RESULT
-                    </span>
-
-                    <div class="stat-number">
-                        ${best ? `${best.percentage}%` : "—"}
-                    </div>
-
-                    <div class="stat-label">
-                        ${best
-                            ? `${best.score}/${best.total} marks`
-                            : "Complete an assessment to get your first result."}
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="stat-label">
-                        Attempts completed:
-                        <strong>${state.quizHistory.length}</strong>
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <section class="section">
-
-                <div class="card">
-
-                    <div class="eyebrow">A NOTE ABOUT THE CURRICULUM</div>
-
-                    <h3 class="card-title">
-                        This is the initial practice assessment.
-                    </h3>
-
-                    <p class="card-description">
-                        It is not yet your official school PBA paper.
-                        Once you provide the actual practical list and
-                        marking scheme, we can create practical-specific
-                        questions, output-prediction exercises, code-writing
-                        tasks, and debugging assessments.
-                    </p>
-
-                </div>
-
-            </section>
-
-        `;
-    }
-
-
-    function shuffle(array) {
-        const copy = [...array];
-
-        for (let i = copy.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-
-            [copy[i], copy[j]] = [copy[j], copy[i]];
-        }
-
-        return copy;
-    }
-
-
-    function startAssessment() {
-        activeAssessment = shuffle(assessmentQuestions);
-
-        assessmentIndex = 0;
-        assessmentAnswers = {};
-
-        renderAssessmentQuestion();
-    }
-
-
-    function renderAssessmentQuestion() {
-        if (!activeAssessment) {
-            renderAssessment();
-            return;
-        }
-
-        const question = activeAssessment[assessmentIndex];
-
-        const total = activeAssessment.length;
-
-        const selected = assessmentAnswers[question.id];
-
-        $("#viewContainer").innerHTML = `
-
-            <section class="assessment-session">
-
-                <div class="assessment-session-top">
-
-                    <div>
-                        <div class="eyebrow">ASSESSMENT IN PROGRESS</div>
-
-                        <strong>
-                            Question ${assessmentIndex + 1} of ${total}
-                        </strong>
-                    </div>
-
-                    <span class="badge badge-accent">
-                        ${question.marks} marks
-                    </span>
-
-                </div>
-
-
-                <div class="progress-track" style="margin-bottom:23px">
-                    <div
-                        class="progress-fill"
-                        style="width:${(assessmentIndex + 1) / total * 100}%"
-                    ></div>
-                </div>
-
-
-                <article class="assessment-question-card">
-
-                    <div class="assessment-question-number">
-                        ${escapeHTML(question.topic.toUpperCase())}
-                        · ${escapeHTML(question.type.toUpperCase())}
-                    </div>
-
-                    <h2 style="margin-top:12px">
-                        ${escapeHTML(question.prompt)}
-                    </h2>
-
-                    <p>
-                        Select the best answer.
-                        You can review your results when the assessment ends.
-                    </p>
-
-                    <div class="answer-options" style="margin-top:22px">
-
-                        ${question.options.map((option, index) => `
-
-                            <button
-                                class="answer-option ${
-                                    selected === index ? "selected" : ""
-                                }"
-                                data-action="assessment-answer"
-                                data-index="${index}"
-                            >
-
-                                <span>
-                                    ${String.fromCharCode(65 + index)}.
-                                </span>
-
-                                <span>${escapeHTML(option)}</span>
-
-                            </button>
-
-                        `).join("")}
-
-                    </div>
-
-
-                    <div class="assessment-footer">
-
-                        <button
-                            class="button button-ghost"
-                            data-action="assessment-back"
-                            ${assessmentIndex === 0 ? "disabled" : ""}
-                        >
-                            ← Previous
-                        </button>
-
-                        <span class="muted">
-                            ${assessmentIndex + 1}/${total}
-                        </span>
-
-                        <button
-                            class="button button-primary"
-                            data-action="assessment-next"
-                            ${selected === undefined ? "disabled" : ""}
-                        >
-                            ${assessmentIndex === total - 1
-                                ? "Finish assessment"
-                                : "Next question →"}
-                        </button>
-
-                    </div>
-
-                </article>
-
-            </section>
-
-        `;
-    }
-
-
-    function chooseAssessmentAnswer(index) {
-        if (!activeAssessment) return;
-
-        const question = activeAssessment[assessmentIndex];
-
-        if (
-            !Number.isInteger(index) ||
-            index < 0 ||
-            index >= question.options.length
-        ) {
-            return;
-        }
-
-        assessmentAnswers[question.id] = index;
-
-        renderAssessmentQuestion();
-    }
-
-
-    function previousAssessmentQuestion() {
-        if (assessmentIndex > 0) {
-            assessmentIndex -= 1;
-
-            renderAssessmentQuestion();
-        }
-    }
-
-
-    function nextAssessmentQuestion() {
-        if (!activeAssessment) return;
-
-        const question = activeAssessment[assessmentIndex];
-
-        if (assessmentAnswers[question.id] === undefined) {
-            toast("Choose an answer before continuing.", "error");
-            return;
-        }
-
-        if (assessmentIndex < activeAssessment.length - 1) {
-            assessmentIndex += 1;
-
-            renderAssessmentQuestion();
-
-        } else {
-            finishAssessment();
-        }
-    }
-
-
-    function finishAssessment() {
-        if (!activeAssessment) return;
-
-        let score = 0;
-        let total = 0;
-
-        const breakdown = {};
-
-        activeAssessment.forEach(question => {
-            const correct =
-                assessmentAnswers[question.id] === question.answer;
-
-            total += question.marks;
-
-            if (correct) {
-                score += question.marks;
-            }
-
-            if (!breakdown[question.topic]) {
-                breakdown[question.topic] = {
-                    score: 0,
-                    total: 0
-                };
-            }
-
-            breakdown[question.topic].total += question.marks;
-
-            if (correct) {
-                breakdown[question.topic].score += question.marks;
-            }
-
-            trackAnswer("Assessment", correct);
-
-            if (["HTML", "CSS", "JavaScript"].includes(question.topic)) {
-                trackAnswer(question.topic, correct);
-            }
-        });
-
-        const percentage = Math.round(score / total * 100);
-
-        const result = {
-            score,
-            total,
-            percentage,
-            date: new Date().toISOString(),
-            breakdown
-        };
-
-        state.quizHistory.push(result);
-
-        if (
-            !state.quizBest ||
-            percentage > state.quizBest.percentage
-        ) {
-            state.quizBest = result;
-        }
-
-        activeAssessment = null;
-
-        assessmentIndex = 0;
-
-        assessmentAnswers = {};
-
-        saveState();
-
-        if (percentage === 100) {
-            awardXP(100, "Perfect assessment");
-
-        } else if (percentage >= 80) {
-            awardXP(60, "Assessment completed");
-
-        } else if (percentage >= 50) {
-            awardXP(35, "Assessment completed");
-
-        } else {
-            awardXP(20, "Assessment completed");
-        }
-
-        completeDailyTask("assessment");
-
-        checkAchievements();
-
-        renderAssessmentResults(result);
-    }
-
-
-    function renderAssessmentResults(result) {
-        const breakdown = result.breakdown;
-
-        $("#viewContainer").innerHTML = `
-
-            <section class="assessment-session">
-
-                <div class="assessment-results">
-
-                    <div class="eyebrow">ASSESSMENT COMPLETE</div>
-
-                    <h1 class="page-heading">
-                        ${result.percentage >= 80
-                            ? "Brilliant work! 🎉"
-                            : result.percentage >= 50
-                                ? "Good effort. Keep going!"
-                                : "Every attempt teaches you something."}
-                    </h1>
-
-                    <div class="result-circle">
-                        ${result.percentage}%
-                    </div>
-
-                    <h2>${result.score} / ${result.total} marks</h2>
-
-                    <p>
-                        ${
-                            result.percentage >= 80
-                                ? "You demonstrated a strong understanding of this question set."
-                                : "Review the explanations and practise the topics that need more attention."
-                        }
-                    </p>
-
-
-                    <div class="result-breakdown">
-
-                        ${Object.entries(breakdown).map(([topic, values]) => `
-
-                            <div class="result-row">
-
-                                <span>${escapeHTML(topic)}</span>
-
-                                <strong>
-                                    ${values.score}/${values.total} marks
-                                </strong>
-
-                            </div>
-
-                        `).join("")}
-
-                    </div>
-
-
-                    <div class="divider"></div>
-
-
-                    <h3 style="text-align:left">Review your answers</h3>
-
-                    <div class="result-breakdown">
-
-                        ${activeAssessmentForReview(result)}
-
-                    </div>
-
-
-                    <div class="editor-split-controls" style="justify-content:center">
-
-                        <button
-                            class="button button-primary"
-                            data-action="retake-assessment"
-                        >
-                            Try again
-                        </button>
-
-                        <button
-                            class="button button-ghost"
-                            data-view="dashboard"
-                        >
-                            Return to dashboard
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-        `;
-    }
-
-
-    /*
-     * The assessment question order and answers are preserved
-     * separately when the result is displayed.
-     */
-
-    let lastAssessmentReview = null;
-
-
-    function activeAssessmentForReview(result) {
-        if (!lastAssessmentReview) {
-            return `
-                <p class="card-description">
-                    Detailed answer review is unavailable for this session.
-                </p>
-            `;
-        }
-
-        return lastAssessmentReview.map(item => `
-
-            <div class="card" style="text-align:left;padding:15px">
-
-                <span class="badge ${
-                    item.correct ? "badge-green" : "badge-yellow"
-                }">
-                    ${item.correct ? "Correct" : "Review"}
-                </span>
-
-                <h4 style="margin:10px 0">
-                    ${escapeHTML(item.prompt)}
-                </h4>
-
-                <p style="font-size:11px;margin-bottom:8px">
-                    Your answer:
-                    <strong>
-                        ${escapeHTML(item.selectedAnswer ?? "Not answered")}
-                    </strong>
-                </p>
-
-                <p style="font-size:11px;margin-bottom:8px">
-                    Correct answer:
-                    <strong>
-                        ${escapeHTML(item.correctAnswer)}
-                    </strong>
-                </p>
-
-                <p style="font-size:11px;margin-bottom:0">
-                    ${escapeHTML(item.explanation)}
-                </p>
-
-            </div>
-
-        `).join("");
-    }
-
-
-    /*
-     * Preserve the original finish implementation while adding
-     * a full answer review.
-     */
-
-    const originalFinishAssessment = finishAssessment;
-
-
-    finishAssessment = function () {
-        if (!activeAssessment) return;
-
-        lastAssessmentReview = activeAssessment.map(question => {
-
-            const selectedIndex = assessmentAnswers[question.id];
-
-            return {
-                prompt: question.prompt,
-
-                selectedAnswer:
-                    selectedIndex === undefined
-                        ? null
-                        : question.options[selectedIndex],
-
-                correctAnswer: question.options[question.answer],
-
-                correct: selectedIndex === question.answer,
-
-                explanation: question.explanation
-            };
-        });
-
-        originalFinishAssessment();
-    };
-
-
-    /* =====================================================
-       ACHIEVEMENT SCREEN
-       ===================================================== */
-
-    function renderAchievements() {
-        $("#viewContainer").innerHTML = `
-
-            <section class="welcome-row">
-
-                <div>
-                    <div class="eyebrow">REWARDS AND MILESTONES</div>
-
-                    <h1 class="page-heading">Achievements</h1>
-
-                    <p class="page-description">
-                        Every milestone represents progress.
-                        Learn, experiment, and unlock rewards as you go.
-                    </p>
-                </div>
-
-                <span class="badge badge-accent">
-                    ${state.achievements.length}/${achievementDefinitions.length} unlocked
-                </span>
-
-            </section>
-
-
-            <section class="achievement-grid">
-
-                ${achievementDefinitions.map(achievement => {
-
-                    const unlocked =
-                        state.achievements.includes(achievement.id);
-
-                    return `
-
-                        <article class="achievement-card ${
-                            unlocked ? "" : "locked"
-                        }">
-
-                            <div class="achievement-symbol">
-                                ${unlocked ? achievement.icon : "🔒"}
-                            </div>
-
-                            <h3>${escapeHTML(achievement.title)}</h3>
-
-                            <p>${escapeHTML(achievement.description)}</p>
-
-                            <span class="badge ${
-                                unlocked ? "badge-green" : ""
-                            }">
-                                ${unlocked ? "UNLOCKED ✓" : "NOT YET"}
-                            </span>
-
-                        </article>
-
-                    `;
-                }).join("")}
-
-            </section>
-
-        `;
-    }
-
-
-    /* =====================================================
-       PROFILE
-       ===================================================== */
-
-    function openProfile() {
-        $("#playerName").value =
-            state.name === "Explorer" ? "" : state.name;
-
-        $("#profileLevel").textContent =
-            `Level ${levelForXP()} Explorer`;
-
-        $("#profileXP").textContent =
-            `${state.xp} experience points`;
-
-        $("#profileDialog").showModal();
-    }
-
-
-    function saveProfile(event) {
-        event.preventDefault();
-
-        const input = $("#playerName");
-
-        const name = input.value.trim();
-
-        if (!name) {
-            toast("Enter a name first.", "error");
-            return;
-        }
-
-        state.name = name.slice(0, 30);
-
-        saveState();
-
-        $("#profileDialog").close();
-
-        updateTopbar();
-
-        toast(`Welcome, ${state.name}!`);
-
-        if (currentView === "dashboard") {
-            renderDashboard();
-        }
-    }
-
-
-    /* =====================================================
-       GLOBAL EVENT DELEGATION
-       ===================================================== */
-
-    function handleClick(event) {
-        const target = event.target.closest(
-            "button, [data-view], [data-action]"
+        frame.srcdoc = documentContent.replace(
+            /<\/body>/i,
+            `
+<script>
+parent.postMessage({
+    token: ${JSON.stringify(token)},
+    type: "preview-done"
+}, "*");
+<\/script>
+</body>`
         );
 
-        if (!target || target.disabled) return;
+        document.body.appendChild(frame);
 
-        if (target.dataset.view) {
-            navigate(target.dataset.view);
+        setTimeout(() => frame.remove(), 2000);
+    });
+}
+
+
+/* =========================================================
+   CODE CHECKER
+========================================================= */
+
+function checkCode() {
+    clearOutput();
+
+    const language = $("#languageSelect").value;
+
+    const code = state.editor.getValue();
+
+    if (!code.trim()) {
+        writeOutput("Your editor is empty.", "warning");
+
+        $("#outputStatus").textContent = "Nothing to check";
+
+        return;
+    }
+
+    if (language === "javascript") {
+        const diagnostics = getDiagnostics();
+
+        if (diagnostics.length) {
+            diagnostics.forEach(item => {
+                writeOutput(
+                    `Line ${item.line}: ${item.message}`,
+                    item.severity === "error" ? "error" : "warning"
+                );
+            });
+
+            $("#outputStatus").textContent =
+                `${diagnostics.length} diagnostic(s)`;
+
+        } else {
+            writeOutput(
+                "No JSHint diagnostics were reported.",
+                "success"
+            );
+
+            writeOutput(
+                "Note: this does not prove the program's logic is correct.",
+                "info"
+            );
+
+            $("#outputStatus").textContent = "Code checked";
+        }
+
+    } else {
+        writeOutput(
+            "The editor's JavaScript lint rules do not apply to this language.",
+            "info"
+        );
+
+        writeOutput(
+            "Use the preview to inspect the HTML or CSS result.",
+            "success"
+        );
+
+        $("#outputStatus").textContent = "Ready to preview";
+    }
+}
+
+$("#checkCodeButton").addEventListener("click", checkCode);
+
+
+/* =========================================================
+   FACTORIAL / SUM FUNCTION EXTRACTION
+========================================================= */
+
+function executeFunctionTests(code, challenge) {
+    return new Promise(resolve => {
+        if (typeof Worker === "undefined" || typeof Blob === "undefined") {
+            resolve({
+                success: false,
+                passedTests: 0,
+                message: "This browser cannot safely run the practical tests."
+            });
             return;
         }
 
-        const action = target.dataset.action;
+        const workerSource = `
+            self.onmessage = function(event) {
+                const { code, functionName, cases } = event.data;
+                try {
+                    const getFunction = new Function(
+                        code + "\\nreturn typeof " + functionName +
+                        " === 'function' ? " + functionName + " : null;"
+                    );
+                    const solution = getFunction();
+                    if (typeof solution !== "function") {
+                        throw new Error("Define a function named " + functionName + ".");
+                    }
 
-        if (!action) return;
+                    const equal = (actual, expected) => {
+                        if (Object.is(actual, expected)) return true;
+                        if (
+                            actual === null || expected === null ||
+                            typeof actual !== "object" ||
+                            typeof expected !== "object"
+                        ) return false;
+                        if (Array.isArray(actual) !== Array.isArray(expected)) return false;
+                        const actualKeys = Object.keys(actual).sort();
+                        const expectedKeys = Object.keys(expected).sort();
+                        return actualKeys.length === expectedKeys.length &&
+                            actualKeys.every((key, index) =>
+                                key === expectedKeys[index] &&
+                                equal(actual[key], expected[key])
+                            );
+                    };
 
-        switch (action) {
+                    for (let index = 0; index < cases.length; index++) {
+                        const test = cases[index];
+                        const actual = solution(...test.input);
+                        if (!equal(actual, test.expected)) {
+                            self.postMessage({
+                                success: false,
+                                passedTests: index,
+                                failedTest: index,
+                                message: "A test did not match the expected result."
+                            });
+                            return;
+                        }
+                    }
 
-            case "open-profile":
-                openProfile();
-                break;
-
-            case "close-profile":
-                $("#profileDialog").close();
-                break;
-
-            case "continue":
-            case "open-next-lesson": {
-                const next =
-                    lessons.find(lesson =>
-                        !state.completedLessons.includes(lesson.id)
-                    ) || lessons[0];
-
-                openLesson(next.id);
-                break;
-            }
-
-            case "open-lesson":
-                openLesson(target.dataset.id);
-                break;
-
-            case "lesson-answer":
-                answerLesson(Number(target.dataset.index));
-                break;
-
-            case "retry-lesson-question":
-                retryLessonQuestion();
-                break;
-
-            case "complete-lesson":
-                completeLesson();
-                break;
-
-            case "next-lesson": {
-                if (!currentLesson) break;
-
-                const index = lessons.indexOf(currentLesson);
-
-                if (index < lessons.length - 1) {
-                    openLesson(lessons[index + 1].id);
-                } else {
-                    navigate("learn");
+                    self.postMessage({
+                        success: true,
+                        passedTests: cases.length,
+                        message: "All practical tests passed."
+                    });
+                } catch (error) {
+                    self.postMessage({
+                        success: false,
+                        passedTests: 0,
+                        message: error.name + ": " + error.message
+                    });
                 }
+            };
+        `;
 
-                break;
-            }
+        const url = URL.createObjectURL(
+            new Blob([workerSource], { type: "text/javascript" })
+        );
+        let worker;
+        let finished = false;
 
-            case "load-lesson-code":
-                loadLessonCode();
-                break;
+        const finish = result => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timeout);
+            if (worker) worker.terminate();
+            URL.revokeObjectURL(url);
+            resolve(result);
+        };
 
-            case "editor-tab":
-                switchEditorTab(target.dataset.lang);
-                break;
+        const timeout = setTimeout(() => {
+            finish({
+                success: false,
+                passedTests: 0,
+                message: "Tests timed out. Check for a loop that never ends."
+            });
+        }, 1800);
 
-            case "run-code":
-                runCode();
-                break;
-
-            case "reset-code":
-                resetCode();
-                break;
-
-            case "clear-console":
-                $("#consoleOutput").replaceChildren();
-                break;
-
-            case "load-dom-example":
-                loadDOMExample();
-                break;
-
-            case "open-challenge":
-                openChallenge(target.dataset.id);
-                break;
-
-            case "check-challenge":
-                checkChallenge();
-                break;
-
-            case "show-hint":
-                showChallengeHint();
-                break;
-
-            case "reset-challenge":
-                if (currentChallenge) {
-                    $("#challengeEditor").value =
-                        currentChallenge.initial;
-
-                    $("#challengeFeedback").replaceChildren();
-
-                    challengeAttempts = 0;
-                    challengeChecked = false;
-                }
-
-                break;
-
-            case "start-assessment":
-                startAssessment();
-                break;
-
-            case "assessment-answer":
-                chooseAssessmentAnswer(Number(target.dataset.index));
-                break;
-
-            case "assessment-back":
-                previousAssessmentQuestion();
-                break;
-
-            case "assessment-next":
-                nextAssessmentQuestion();
-                break;
-
-            case "retake-assessment":
-                startAssessment();
-                break;
-
+        try {
+            worker = new Worker(url);
+            worker.onmessage = event => finish(event.data);
+            worker.onerror = event => finish({
+                success: false,
+                passedTests: 0,
+                message: `Test worker failed: ${event.message || "unknown error"}`
+            });
+            worker.postMessage({
+                code,
+                functionName: challenge.functionName,
+                cases: challenge.cases
+            });
+        } catch (error) {
+            finish({
+                success: false,
+                passedTests: 0,
+                message: `Could not start the isolated test runner: ${error.message}`
+            });
         }
-    }
+    });
+}
 
 
-    function handleProfileSubmit(event) {
-        if (event.target.id === "profileForm") {
-            saveProfile(event);
-        }
-    }
+/* =========================================================
+   RUN BUTTON
+========================================================= */
 
+async function runCode() {
+    if (state.saving) return;
 
-    /* =====================================================
-       INITIALIZATION
-       ===================================================== */
+    const button = $("#runCodeButton");
 
-    function initialize() {
-        initializeVisit();
+    button.disabled = true;
+    button.textContent = "Running…";
 
-        updateTopbar();
+    clearOutput();
 
-        document.addEventListener("click", handleClick);
+    const language = $("#languageSelect").value;
 
-        document.addEventListener("submit", handleProfileSubmit);
+    const code = state.editor.getValue();
 
-        window.addEventListener("message", handleConsoleMessage);
+    $("#outputStatus").textContent = "Executing";
 
-        $("#menuToggle").addEventListener("click", () => {
-            const sidebar = $("#sidebar");
+    try {
+        if (language === "javascript") {
+            const diagnostics = getDiagnostics();
 
-            sidebar.classList.toggle("open");
-
-            $("#menuToggle").setAttribute(
-                "aria-expanded",
-                String(sidebar.classList.contains("open"))
+            const fatalSyntax = diagnostics.find(
+                item => item.severity === "error"
             );
-        });
 
-        $("#profileDialog").addEventListener("click", event => {
-            if (event.target === $("#profileDialog")) {
-                $("#profileDialog").close();
+            /*
+             * Allow execution despite diagnostics so students can inspect
+             * runtime behavior. The runtime itself catches syntax errors.
+             */
+
+            if (fatalSyntax) {
+                writeOutput(
+                    `Editor warning: line ${fatalSyntax.line}: ` +
+                    fatalSyntax.message,
+                    "warning"
+                );
             }
-        });
 
-        window.addEventListener("beforeunload", saveState);
+            const rawInputs = $("#programInputs").value;
+            const inputs = rawInputs.trim()
+                ? rawInputs.split(",").map(value => value.trim())
+                : [];
+            const result = await runJavaScript(code, inputs);
 
-        navigate("dashboard");
+            if (result.error) {
+                writeOutput(result.error, "error");
+
+                $("#outputStatus").textContent = "Execution failed";
+
+            } else {
+                if (!result.results.length) {
+                    writeOutput(
+                        "Program finished without console output.",
+                        "info"
+                    );
+                } else {
+                    result.results.forEach(item => {
+                        writeOutput(
+                            item.message,
+                            item.type === "error"
+                                ? "error"
+                                : item.type === "warning"
+                                    ? "warning"
+                                    : "normal"
+                        );
+                    });
+                }
+
+                $("#outputStatus").textContent = "Execution finished";
+            }
+
+            if (!result.error) {
+                await runChallengeTests();
+            }
+
+        } else {
+            const result = await runMarkup(language, code);
+
+            if (result.error) {
+                writeOutput(result.error, "error");
+
+                $("#outputStatus").textContent = "Preview failed";
+
+            } else {
+                writeOutput(
+                    "Preview generated. This editor currently uses an internal sandbox preview, not a separate browser tab.",
+                    "success"
+                );
+
+                $("#outputStatus").textContent = "Preview finished";
+                await runChallengeTests();
+            }
+        }
+
+    } catch (error) {
+        writeOutput(
+            `${error.name}: ${error.message}`,
+            "error"
+        );
+
+        $("#outputStatus").textContent = "Execution failed";
+
+    } finally {
+        button.disabled = false;
+        button.textContent = "▶ Run code";
+    }
+}
+
+
+$("#runCodeButton").addEventListener("click", runCode);
+
+
+/* =========================================================
+   CHALLENGE TEST RUNNER
+========================================================= */
+
+async function runChallengeTests() {
+    const challenge = challenges[state.currentChallenge];
+
+    if (!challenge || !state.challengeContext) {
+        return;
     }
 
+    if (challenge.language !== $("#languageSelect").value) {
+        writeOutput(
+            `Switch back to ${challenge.language} to run this practical's tests.`,
+            "info"
+        );
+        return;
+    }
 
-    return {
-        initialize,
-        navigate,
-        openLesson,
-        runCode
-    };
+    const code = state.editor.getValue();
+    const result = typeof challenge.validate === "function"
+        ? challenge.validate(code)
+        : await executeFunctionTests(code, challenge);
 
-})();
+    (challenge.testCases || []).forEach((test, index) => {
+        const resultElement = $(`#testCase${index} .test-result`);
+        if (!resultElement) return;
+
+        resultElement.textContent = index < result.passedTests
+            ? "Passed"
+            : index === result.failedTest
+                ? "Needs work"
+                : "Not tested";
+        resultElement.className = index < result.passedTests
+            ? "test-result passed"
+            : index === result.failedTest
+                ? "test-result failed"
+                : "test-result";
+    });
+
+    if (result.success) {
+        writeOutput(result.message, "success");
+
+        state.challengeResults[state.currentChallenge] = true;
+
+        if (
+            challenge.lessonId === state.currentLesson &&
+            !state.progress.completedLessons.includes(challenge.lessonId)
+        ) {
+            await saveLessonCompletion(challenge.lessonId);
+            toast("Lesson complete. Great work!");
+        } else if (challenge.assessmentTaskId) {
+            await saveAssessmentTaskCompletion(challenge.assessmentTaskId);
+            toast("Checkpoint task passed!");
+        } else {
+            toast("All practical tests passed!");
+        }
+
+    } else {
+        writeOutput(
+            `Test feedback: ${result.message}`,
+            "warning"
+        );
+
+        state.challengeResults[state.currentChallenge] = false;
+    }
+}
+
+async function saveAssessmentTaskCompletion(taskId) {
+    if (hasPassedAssessmentTask(taskId)) return;
+
+    await saveAssessmentResult(taskId, 1, 1);
+
+    const checkpoint = checkpoints.find(item =>
+        item.taskIds.includes(taskId)
+    );
+    if (checkpoint && state.currentAssessment === checkpoint.id) {
+        renderAssessmentTasks(checkpoint);
+        $("#assessmentCategory").textContent =
+            `${challenges[state.currentAssessmentTask].questionType} · ${checkpoint.taskIds.filter(hasPassedAssessmentTask).length}/${checkpoint.taskIds.length} passed`;
+    }
+
+    if (
+        checkpoint &&
+        isCheckpointComplete(checkpoint) &&
+        !state.progress.assessmentResults.some(result =>
+            result.id === checkpoint.id &&
+            Number(result.score) >= Number(result.maxScore)
+        )
+    ) {
+        await saveAssessmentResult(
+            checkpoint.id,
+            checkpoint.taskIds.length,
+            checkpoint.taskIds.length
+        );
+    }
+}
 
 
-document.addEventListener("DOMContentLoaded", () => {
-    CodeQuest.initialize();
+/* =========================================================
+   RESET STARTER CODE
+========================================================= */
+
+$("#resetCodeButton").addEventListener("click", () => {
+    const challenge = challenges[state.currentChallenge];
+
+    if (!challenge) return;
+
+    const confirmed = window.confirm(
+        "Reset your editor to the original starter code? Your current code will be lost."
+    );
+
+    if (!confirmed) return;
+
+    state.editor.setValue(challenge.starterCode);
+
+    $("#unsavedDot").hidden = true;
+
+    clearOutput();
+
+    $("#outputStatus").textContent = "Code reset";
+
+    toast("Starter code restored.");
 });
+
+
+/* =========================================================
+   ASSESSMENT WORKSPACE
+========================================================= */
+
+function openAssessment(key) {
+    const checkpoint = assessments[key];
+
+    if (!checkpoint) return;
+
+    if (
+        !isUnitUnlocked(checkpoint.unitId) ||
+        !areUnitLessonsComplete(checkpoint.unitId)
+    ) {
+        toast("Finish this unit's lessons to unlock its checkpoint.");
+        return;
+    }
+
+    state.currentLesson = null;
+    state.challengeContext = null;
+    state.currentAssessment = key;
+
+    $("#assessmentCategory").textContent =
+        `CHECKPOINT · ${checkpoint.taskIds.filter(hasPassedAssessmentTask).length}/${checkpoint.taskIds.length} TASKS`;
+    $("#assessmentTitle").textContent = checkpoint.title;
+    $("#assessmentPrompt").textContent = checkpoint.description;
+    $("#assessmentWorkspace").hidden = false;
+
+    const nextTask = checkpoint.taskIds.find(
+        taskId => !hasPassedAssessmentTask(taskId)
+    );
+
+    renderAssessmentTasks(checkpoint);
+    selectAssessmentTask(nextTask || checkpoint.taskIds[0]);
+
+    $("#assessmentWorkspace").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+function renderAssessments() {
+    const container = $("#assessmentTypes");
+
+    container.innerHTML = checkpoints.map(checkpoint => {
+        const complete = isCheckpointComplete(checkpoint);
+        const ready =
+            isUnitUnlocked(checkpoint.unitId) &&
+            areUnitLessonsComplete(checkpoint.unitId);
+        const passedCount = checkpoint.taskIds.filter(
+            hasPassedAssessmentTask
+        ).length;
+        const action = complete
+            ? "Review checkpoint"
+            : ready
+                ? "Begin checkpoint"
+                : isUnitUnlocked(checkpoint.unitId)
+                    ? "Complete unit lessons first"
+                    : "Locked until previous checkpoint";
+
+        return `
+            <article class="assessment-type-card${ready ? "" : " locked"}">
+                <div class="assessment-type-icon">⌁</div>
+                <span class="course-tag">${complete ? "PASSED" : `CHECKPOINT ${checkpoints.indexOf(checkpoint) + 1}`}</span>
+                <h3>${escapeHTML(checkpoint.title)}</h3>
+                <p>${escapeHTML(checkpoint.description)}</p>
+                <span class="assessment-progress">${passedCount}/${checkpoint.taskIds.length} tasks passed</span>
+                <button class="primary-button"
+                        data-assessment="${escapeHTML(checkpoint.id)}"
+                        ${ready || complete ? "" : "disabled"}>
+                    ${action} →
+                </button>
+            </article>
+        `;
+    }).join("");
+}
+
+function renderAssessmentTasks(checkpoint) {
+    $("#assessmentTaskList").innerHTML = checkpoint.taskIds.map(
+        (taskId, index) => {
+            const task = challenges[taskId];
+            const passed = hasPassedAssessmentTask(task.assessmentTaskId);
+            const selected = state.currentAssessmentTask === taskId;
+
+            return `
+                <button class="assessment-task${selected ? " selected" : ""}${passed ? " complete" : ""}"
+                        data-assessment-task="${escapeHTML(taskId)}"
+                        aria-pressed="${selected}">
+                    <span>${index + 1}. ${escapeHTML(task.questionType)}</span>
+                    <strong>${escapeHTML(task.title)}</strong>
+                    <small>${passed ? "Passed" : "Open task"}</small>
+                </button>
+            `;
+        }
+    ).join("");
+}
+
+function selectAssessmentTask(taskId) {
+    const task = challenges[taskId];
+    if (!task || !task.assessmentTaskId) return;
+
+    state.currentAssessmentTask = taskId;
+    $("#assessmentCategory").textContent = task.questionType;
+    $("#assessmentPrompt").textContent = task.description;
+    $("#assessmentStarterCode").textContent = task.starterCode;
+    $("#assessmentExtraInstructions").textContent =
+        task.instructions.join(" ");
+    $("#openAssessmentEditorButton").textContent =
+        hasPassedAssessmentTask(task.assessmentTaskId)
+            ? "Review this task in the practice lab →"
+            : "Open this task in the practice lab →";
+
+    const checkpoint = assessments[state.currentAssessment];
+    if (checkpoint) {
+        $("#assessmentCategory").textContent =
+            `${task.questionType} · ${checkpoint.taskIds.filter(hasPassedAssessmentTask).length}/${checkpoint.taskIds.length} passed`;
+        renderAssessmentTasks(checkpoint);
+    }
+}
+
+$("#assessmentTypes").addEventListener("click", event => {
+    const button = event.target.closest("[data-assessment]");
+    if (button && !button.disabled) {
+        openAssessment(button.dataset.assessment);
+    }
+});
+
+$("#assessmentTaskList").addEventListener("click", event => {
+    const button = event.target.closest("[data-assessment-task]");
+    if (button) selectAssessmentTask(button.dataset.assessmentTask);
+});
+
+
+$("#closeAssessmentButton").addEventListener("click", () => {
+    $("#assessmentWorkspace").hidden = true;
+});
+
+
+$("#openAssessmentEditorButton").addEventListener("click", () => {
+    if (!state.currentAssessmentTask) return;
+
+    loadChallenge(state.currentAssessmentTask);
+
+    toast("Assessment loaded into the editor.");
+});
+
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+========================================================= */
+
+document.addEventListener("keydown", event => {
+    if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "Enter"
+    ) {
+        if (state.currentView === "practice") {
+            event.preventDefault();
+            runCode();
+        }
+    }
+
+    if (event.key === "Escape") {
+        closeAuthModal();
+        $("#sidebar").classList.remove("open");
+    }
+});
+
+
+/* =========================================================
+   INITIALISE
+========================================================= */
+
+function initialiseApp() {
+    loadGuestProgress();
+
+    initialiseEditor();
+
+    renderUser();
+
+    renderDashboard();
+
+    $("#hintText").hidden = true;
+
+    initialiseAuth();
+}
+
+initialiseApp();
