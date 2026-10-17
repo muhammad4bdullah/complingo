@@ -709,7 +709,7 @@ avg();`,
             starterCode: `let no1;
 no1 = Number(prompt("Enter your number"));
 
-if (no1 % 2 === 0) {
+if (// Check if no1 is even) {
     // Display the even message
 } else {
     // Display the odd message
